@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRL Engine — Predictive Readiness Loop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #080e14;
+            --bg-base: #0a1219;
+            --bg-card: #0f1a24;
+            --bg-card-hover: #121f2e;
+            --bg-input: #0a1218;
+            --border: #1a2a3a;
+            --border-hover: #2a4a6a;
+            --border-active: #1a3a5a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #c0d0e0;
+            --text-muted: #6a8aaa;
+            --text-dim: #4a6a8a;
+            --text-faint: #2a3a4a;
+            --accent-blue: #4dabf7;
+            --accent-blue-light: #90d0f0;
+            --accent-blue-bg: #1a4a6a;
+            --accent-blue-border: #2a6a8a;
+            --accent-green: #69db7c;
+            --accent-green-bg: #1a6b3a;
+            --accent-green-light: #c0f0d0;
+            --accent-green-border: #2a8b5a;
+            --accent-red: #ff6b6b;
+            --accent-red-bg: #3a1518;
+            --accent-red-border: #5a2528;
+            --accent-orange: #ffa94d;
+            --accent-orange-bg: #3a2a15;
+            --accent-orange-border: #5a4a28;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-body: 'IBM Plex Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-deep);
+            color: var(--text-secondary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* === HEADER === */
+        .header {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-base);
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .logo {
+            width: 36px; height: 36px; border-radius: 6px;
+            background: linear-gradient(135deg, #1a4a6a, #1a6b3a);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-mono); font-weight: 800; font-size: 14px;
+            color: #e0f0ff; border: 1px solid var(--accent-blue-border);
+        }
+        .header-title {
+            font-size: 16px; font-weight: 700; color: #e8f0f8;
+            font-family: var(--font-mono); letter-spacing: 0.05em;
+        }
+        .header-subtitle {
+            font-size: 10px; color: var(--text-dim);
+            font-family: var(--font-mono); letter-spacing: 0.12em; margin-top: 2px;
+        }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .status-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 4px;
+            background: #0f1a22; border: 1px solid var(--border);
+        }
+        .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent-green); animation: pulse 2s infinite;
+        }
+        .status-text {
+            font-size: 10px; color: var(--accent-green);
+            font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.08em;
+        }
+        .clock {
+            font-size: 12px; color: var(--text-dim); font-family: var(--font-mono);
+        }
+
+        /* === TABS === */
+        .tab-bar {
+            display: flex; gap: 2px; padding: 0 24px;
+            background: var(--bg-base); border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            padding: 12px 20px; border: none; cursor: pointer;
+            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+            letter-spacing: 0.08em; transition: all 0.15s ease;
+            background: transparent; color: var(--text-dim);
+            border-bottom: 2px solid transparent;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tab-btn:hover { color: var(--text-muted); }
+        .tab-btn.active {
+            background: #0d1820; color: var(--accent-blue-light);
+            border-bottom-color: var(--accent-blue);
+        }
+        .tab-icon { font-size: 14px; }
+
+        /* === MAIN LAYOUT === */
+        .main-layout {
+            flex: 1; display: flex; overflow: hidden;
+        }
+        .main-content {
+            flex: 1; overflow-y: auto; padding: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* === SIDEBAR === */
+        .sidebar {
+            width: 220px; border-left: 1px solid var(--border);
+            background: var(--bg-base); padding: 20px 16px;
+            display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
+        }
+        .sidebar-label {
+            font-size: 10px; color: var(--text-dim);
+            font-family: var(--font-mono); letter-spacing: 0.12em; margin-bottom: 4px;
+        }
+        .sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
+        .sidebar-btn {
+            width: 100%; padding: 10px 14px; border-radius: 6px;
+            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+            cursor: pointer; text-align: left; letter-spacing: 0.05em;
+            border: 1px solid var(--border); background: var(--bg-card);
+            color: #8aaacc; transition: all 0.15s ease;
+        }
+        .sidebar-btn:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+        .sidebar-btn.primary {
+            background: var(--accent-green-bg); color: var(--accent-green-light);
+            border-color: var(--accent-green-border);
+        }
+        .sidebar-btn.primary:hover { background: #1f7d45; }
+
+        /* === SECTION HEADERS === */
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 16px; font-weight: 700; color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+        .section-meta {
+            font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);
+        }
+
+        /* === CARDS / ROWS === */
+        .data-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 16px; background: var(--bg-card); border-radius: 6px;
+            border: 1px solid var(--border); cursor: pointer;
+            transition: all 0.15s ease; margin-bottom: 8px;
+        }
+        .data-row:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+        .data-row-left { display: flex; align-items: center; gap: 16px; }
+
+        .badge {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+            font-family: var(--font-mono);
+        }
+        .badge-high { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
+        .badge-medium { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid var(--accent-orange-border); }
+        .badge-low, .badge-active { background: #153a1a; color: var(--accent-green); border: 1px solid #285a30; }
+        .badge-review { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid var(--accent-orange-border); }
+        .badge-reference { background: #15253a; color: #74c0fc; border: 1px solid #284a5a; }
+
+        .date-label {
+            font-size: 12px; color: var(--text-dim);
+            font-family: var(--font-mono); min-width: 90px;
+        }
+        .row-title { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .row-subtitle {
+            font-size: 10px; color: #5a7a9a; font-family: var(--font-mono);
+            text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
+        }
+
+        /* === EMAIL INBOX === */
+        .email-row {
+            display: flex; align-items: center; gap: 16px;
+            padding: 12px 16px; border-radius: 5px;
+            border: 1px solid var(--border); cursor: pointer;
+            transition: all 0.15s ease; margin-bottom: 4px;
+        }
+        .email-row.unread { background: var(--bg-card-hover); border-color: var(--border-active); }
+        .email-row.read { background: var(--bg-card); }
+        .email-row:hover { background: #162636; }
+        .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-blue); flex-shrink: 0; }
+        .read-spacer { width: 8px; flex-shrink: 0; }
+        .email-from {
+            font-size: 12px; color: var(--text-muted); font-weight: 600;
+            min-width: 80px; font-family: var(--font-mono);
+        }
+        .email-subject { font-size: 13px; flex: 1; }
+        .email-subject.unread { color: #d0e0f0; font-weight: 600; }
+        .email-subject.read { color: #8a9aaa; font-weight: 400; }
+        .email-time { font-size: 11px; color: #4a5a6a; font-family: var(--font-mono); }
+
+        /* === LETTERS GRID === */
+        .letter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .letter-card {
+            padding: 16px; background: var(--bg-card); border-radius: 6px;
+            border: 1px solid var(--border); cursor: pointer; transition: all 0.15s ease;
+        }
+        .letter-card:hover { border-color: var(--border-hover); }
+        .letter-title { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; }
+        .letter-type {
+            font-size: 10px; color: #5a7a9a; font-family: var(--font-mono);
+            text-transform: uppercase; letter-spacing: 0.08em;
+        }
+
+        /* === ASK VIEW === */
+        .ask-messages {
+            flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+            gap: 10px; margin-bottom: 16px; min-height: 250px;
+        }
+        .ask-msg {
+            padding: 12px 16px; border-radius: 6px; font-size: 13px;
+            line-height: 1.6; white-space: pre-wrap; max-width: 85%;
+            animation: slideUp 0.3s ease;
+        }
+        .ask-msg.system {
+            background: #1a2a2a; color: #6aaa8a; border: 1px solid #2a4a3a;
+            align-self: flex-start;
+        }
+        .ask-msg.user {
+            background: #1a2a4a; color: #b0d0f0; border: 1px solid var(--accent-blue-border);
+            align-self: flex-end;
+        }
+        .ask-msg.assistant {
+            background: var(--bg-card); color: #a0b8cc; border: 1px solid var(--border);
+            align-self: flex-start;
+        }
+        .ask-input-row { display: flex; gap: 8px; }
+        .ask-input {
+            flex: 1; padding: 12px 16px; border-radius: 6px;
+            border: 1px solid #2a3a4a; background: var(--bg-input);
+            color: #c0d8e8; font-size: 13px; font-family: var(--font-mono);
+            outline: none;
+        }
+        .ask-input:focus { border-color: var(--accent-blue); }
+
+        /* === COMPOSE BUTTON === */
+        .compose-btn {
+            background: var(--accent-green-bg); color: var(--accent-green-light);
+            border: 1px solid var(--accent-green-border);
+            padding: 8px 16px; border-radius: 5px; font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: var(--font-mono); letter-spacing: 0.05em;
+        }
+        .compose-btn:hover { background: #1f7d45; }
+
+        /* === REFERENCE PANEL === */
+        .ref-panel {
+            border-top: 1px solid var(--border); background: var(--bg-base);
+            padding: 16px 24px;
+        }
+        .ref-label {
+            font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);
+            letter-spacing: 0.12em; margin-bottom: 12px;
+        }
+        .ref-grid { display: flex; gap: 10px; }
+        .ref-card {
+            flex: 1; padding: 14px 16px; border-radius: 6px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            cursor: pointer; text-align: left; transition: all 0.15s ease;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .ref-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+        .ref-icon { font-size: 20px; }
+        .ref-title {
+            font-size: 12px; font-weight: 700; color: #b0c8d8;
+            font-family: var(--font-mono);
+        }
+        .ref-desc { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+        /* === FOOTER === */
+        .footer {
+            padding: 10px 24px; border-top: 1px solid var(--border);
+            background: var(--bg-deep); display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .footer-text {
+            font-size: 10px; color: var(--text-faint);
+            font-family: var(--font-mono); letter-spacing: 0.1em;
+        }
+
+        /* === MODAL === */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; backdrop-filter: blur(4px);
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            width: 520px; max-height: 80vh; background: #0d1820;
+            border-radius: 10px; border: 1px solid var(--border-active);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6); overflow: hidden;
+            animation: slideUp 0.25s ease;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+        }
+        .modal-title {
+            font-size: 14px; font-weight: 700; color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+        .modal-close {
+            background: none; border: none; color: #5a6a7a;
+            font-size: 20px; cursor: pointer; padding: 4px;
+        }
+        .modal-body { padding: 20px; }
+        .form-label {
+            font-size: 11px; color: #5a7a9a; font-family: var(--font-mono);
+            letter-spacing: 0.1em; display: block; margin-bottom: 8px;
+        }
+        .form-group { margin-bottom: 16px; }
+        .recipient-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+        .recipient-btn {
+            padding: 8px 14px; border-radius: 5px; font-size: 12px; font-weight: 600;
+            cursor: pointer; font-family: var(--font-mono);
+            background: var(--bg-input); color: #5a6a7a; border: 1px solid var(--border);
+            transition: all 0.15s ease;
+        }
+        .recipient-btn.selected {
+            background: var(--accent-blue-bg); color: var(--accent-blue-light);
+            border-color: var(--accent-blue-border);
+        }
+        .form-input {
+            width: 100%; padding: 10px 14px; border-radius: 5px;
+            border: 1px solid var(--border); background: var(--bg-input);
+            color: #c0d8e8; font-size: 13px; font-family: var(--font-mono);
+            outline: none;
+        }
+        .form-input:focus { border-color: var(--accent-blue); }
+        .form-textarea {
+            width: 100%; padding: 12px 14px; border-radius: 5px;
+            border: 1px solid var(--border); background: var(--bg-input);
+            color: #c0d8e8; font-size: 13px; line-height: 1.6;
+            font-family: var(--font-body); outline: none; resize: vertical;
+            min-height: 120px;
+        }
+        .form-textarea:focus { border-color: var(--accent-blue); }
+        .modal-actions {
+            display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;
+        }
+        .btn {
+            padding: 10px 20px; border-radius: 5px; font-size: 12px;
+            font-weight: 700; cursor: pointer; font-family: var(--font-mono);
+            transition: all 0.15s ease;
+        }
+        .btn-secondary {
+            background: #1a2030; color: #6a7a8a; border: 1px solid #2a3040;
+        }
+        .btn-primary {
+            background: var(--accent-green-bg); color: var(--accent-green-light);
+            border: 1px solid var(--accent-green-border);
+        }
+        .btn-primary:hover { background: #1f7d45; }
+        .btn-primary:disabled {
+            background: #1a2a2a; color: #3a4a3a; border-color: #2a3a2a;
+            cursor: default;
+        }
+        .btn-danger {
+            background: var(--accent-red-bg); color: var(--accent-red);
+            border: 1px solid var(--accent-red-border);
+        }
+
+        /* === CONFIRM === */
+        .confirm-view { padding: 32px; text-align: center; }
+        .confirm-icon { font-size: 32px; margin-bottom: 16px; }
+        .confirm-title {
+            font-size: 14px; font-weight: 700; color: var(--text-primary);
+            margin-bottom: 8px; font-family: var(--font-mono);
+        }
+        .confirm-meta {
+            font-size: 12px; color: var(--text-muted); margin-bottom: 24px;
+            font-family: var(--font-mono);
+        }
+        .confirm-actions { display: flex; justify-content: center; gap: 12px; }
+
+        /* === TOAST === */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+            padding: 14px 24px; border-radius: 8px;
+            background: var(--accent-green-bg); color: var(--accent-green-light);
+            font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+            border: 1px solid var(--accent-green-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            animation: toastIn 0.3s ease;
+            display: none;
+        }
+        .toast.show { display: block; }
+
+        /* === REF MODAL === */
+        .ref-modal-body { padding: 28px; }
+        .ref-modal-icon { font-size: 28px; margin-bottom: 12px; }
+        .ref-modal-title {
+            font-size: 16px; color: var(--text-primary);
+            font-family: var(--font-mono); margin-bottom: 8px;
+        }
+        .ref-modal-desc {
+            font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;
+        }
+        .ref-modal-status {
+            padding: 16px; background: var(--bg-input); border-radius: 6px;
+            border: 1px solid var(--border); margin-bottom: 20px;
+            font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);
+            letter-spacing: 0.08em;
+        }
+
+        /* === TAB PANELS === */
+        .tab-panel { display: none; }
+        .tab-panel.active {
+            display: flex; flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .ref-grid { flex-wrap: wrap; }
+            .ref-card { min-width: 45%; }
+            .letter-grid { grid-template-columns: 1fr; }
+            .tab-btn { padding: 10px 12px; font-size: 10px; }
+            .tab-btn .tab-icon { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">PRL</div>
+            <div>
+                <div class="header-title">PREDICTIVE READINESS LOOP</div>
+                <div class="header-subtitle">NAS MISSION READINESS ENGINE</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span class="status-text">SYSTEM ONLINE</span>
+            </div>
+            <span class="clock" id="clock"></span>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="schedule">
+            <span class="tab-icon">📅</span> SCHEDULE
+        </button>
+        <button class="tab-btn" data-tab="email">
+            <span class="tab-icon">✉️</span> EMAIL
+        </button>
+        <button class="tab-btn" data-tab="letters">
+            <span class="tab-icon">📄</span> LETTERS
+        </button>
+        <button class="tab-btn" data-tab="ask">
+            <span class="tab-icon">❓</span> ASK QUESTIONS
+        </button>
+        <button class="tab-btn" data-tab="governance">
+            <span class="tab-icon">🛡️</span> GOVERNANCE
+        </button>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-layout">
+        <div class="main-content">
+
+            <!-- SCHEDULE TAB -->
+            <div class="tab-panel active" id="panel-schedule">
+                <div class="section-header">
+                    <h2 class="section-title">UPCOMING EVENTS</h2>
+                    <span class="section-meta" id="schedule-count"></span>
+                </div>
+                <div id="schedule-list"></div>
+            </div>
+
+            <!-- EMAIL TAB -->
+            <div class="tab-panel" id="panel-email">
+                <div class="section-header">
+                    <h2 class="section-title">INBOX</h2>
+                    <button class="compose-btn" onclick="openCompose()">+ COMPOSE</button>
+                </div>
+                <div id="email-list"></div>
+            </div>
+
+            <!-- LETTERS TAB -->
+            <div class="tab-panel" id="panel-letters">
+                <div class="section-header">
+                    <h2 class="section-title">LETTER TEMPLATES</h2>
+                </div>
+                <div class="letter-grid" id="letter-list"></div>
+            </div>
+
+            <!-- ASK TAB -->
+            <div class="tab-panel" id="panel-ask">
+                <div class="section-header">
+                    <h2 class="section-title">ASK THE PRL ENGINE</h2>
+                </div>
+                <div class="ask-messages" id="ask-messages">
+                    <div class="ask-msg system">PRL Decision Engine ready. Ask a question about maintenance signals, staffing, equipment health, or mission readiness.</div>
+                </div>
+                <div class="ask-input-row">
+                    <input class="ask-input" id="ask-input" placeholder="Ask about signals, readiness, risk patterns..." onkeydown="if(event.key==='Enter')sendQuestion()">
+                    <button class="btn btn-primary" onclick="sendQuestion()">SEND</button>
+                </div>
+            </div>
+
+            <!-- GOVERNANCE TAB -->
+            <div class="tab-panel" id="panel-governance">
+                <div class="section-header">
+                    <h2 class="section-title">GOVERNANCE CONTROLS</h2>
+                </div>
+                <div id="governance-list"></div>
+            </div>
+
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-label">QUICK ACTIONS</div>
+            <button class="sidebar-btn primary" onclick="openCompose()">✉️ &nbsp;CREATE EMAIL</button>
+            <button class="sidebar-btn" onclick="switchTab('ask')">❓ &nbsp;ASK PRL</button>
+            <button class="sidebar-btn" onclick="switchTab('governance')">🛡️ &nbsp;GOVERNANCE</button>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-label">EMAIL TO</div>
+            <button class="sidebar-btn" onclick="openCompose()">→ ETR</button>
+            <button class="sidebar-btn" onclick="openCompose()">→ HR</button>
+        </div>
+    </div>
+
+    <!-- REFERENCE DOCS -->
+    <div class="ref-panel">
+        <div class="ref-label">REFERENCE DOCUMENTS</div>
+        <div class="ref-grid" id="ref-grid"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <span class="footer-text">PRL ENGINE v0.1 — PROTOTYPE — FAA NAS READINESS</span>
+        <span class="footer-text">"We will not wait for failure to teach us."</span>
+    </div>
+
+    <!-- COMPOSE MODAL -->
+    <div class="modal-overlay" id="compose-modal">
+        <div class="modal">
+            <div id="compose-form-view">
+                <div class="modal-header">
+                    <span class="modal-title">COMPOSE EMAIL</span>
+                    <button class="modal-close" onclick="closeCompose()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">TO:</label>
+                        <div class="recipient-grid" id="recipient-grid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SUBJECT:</label>
+                        <input class="form-input" id="compose-subject" placeholder="Enter subject...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">BODY:</label>
+                        <textarea class="form-textarea" id="compose-body" placeholder="Compose message..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closeCompose()">BACK</button>
+                        <button class="btn btn-primary" id="send-btn" onclick="showConfirm()" disabled>SEND</button>
+                    </div>
+                </div>
+            </div>
+            <div id="compose-confirm-view" style="display:none;">
+                <div class="confirm-view">
+                    <div class="confirm-icon">✉️</div>
+                    <div class="confirm-title">CONFIRM SEND?</div>
+                    <div class="confirm-meta" id="confirm-meta"></div>
+                    <div class="confirm-actions">
+                        <button class="btn btn-danger" onclick="hideConfirm()">NO</button>
+                        <button class="btn btn-primary" onclick="confirmSend()">YES</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REFERENCE DOC MODAL -->
+    <div class="modal-overlay" id="ref-modal">
+        <div class="modal" style="width:480px;">
+            <div class="ref-modal-body">
+                <div class="ref-modal-icon" id="ref-modal-icon"></div>
+                <div class="ref-modal-title" id="ref-modal-title"></div>
+                <div class="ref-modal-desc" id="ref-modal-desc"></div>
+                <div class="ref-modal-status">STATUS: INDEXED ● LAST UPDATED: 2026-02-28</div>
+                <button class="btn btn-secondary" onclick="closeRefModal()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // === STATE ===
+        const recipients = ['ETR', 'HR', 'Supervisor', 'AIT Leadership'];
+        let selectedRecipients = new Set();
+
+        // === CLOCK ===
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // === TAB SWITCHING ===
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabId);
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.id === 'panel-' + tabId);
+            });
+        }
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // === LOAD DATA ===
+        async function loadSchedule() {
+            const res = await fetch('/api/schedule');
+            const data = await res.json();
+            document.getElementById('schedule-count').textContent = data.length + ' scheduled';
+            document.getElementById('schedule-list').innerHTML = data.map(item => `
+                <div class="data-row">
+                    <div class="data-row-left">
+                        <span class="date-label">${item.date}</span>
+                        <span class="row-title">${item.title}</span>
+                    </div>
+                    <span class="badge badge-${item.priority}">${item.priority}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadEmails() {
+            const res = await fetch('/api/emails');
+            const data = await res.json();
+            document.getElementById('email-list').innerHTML = data.map(e => `
+                <div class="email-row ${e.read ? 'read' : 'unread'}">
+                    ${e.read ? '<span class="read-spacer"></span>' : '<span class="unread-dot"></span>'}
+                    <span class="email-from">${e.from}</span>
+                    <span class="email-subject ${e.read ? 'read' : 'unread'}">${e.subject}</span>
+                    <span class="email-time">${e.time}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadLetters() {
+            const res = await fetch('/api/letters');
+            const data = await res.json();
+            document.getElementById('letter-list').innerHTML = data.map(t => `
+                <div class="letter-card">
+                    <div class="letter-title">${t.title}</div>
+                    <span class="letter-type">${t.type}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadGovernance() {
+            const res = await fetch('/api/governance');
+            const data = await res.json();
+            const badgeMap = { 'Active': 'active', 'Under Review': 'review', 'Reference': 'reference' };
+            document.getElementById('governance-list').innerHTML = data.map(item => `
+                <div class="data-row">
+                    <div>
+                        <div class="row-title">${item.title}</div>
+                        <div class="row-subtitle">${item.category}</div>
+                    </div>
+                    <span class="badge badge-${badgeMap[item.status] || 'active'}">${item.status}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadReferences() {
+            const res = await fetch('/api/references');
+            const data = await res.json();
+            document.getElementById('ref-grid').innerHTML = data.map(doc => `
+                <div class="ref-card" onclick="openRefModal('${doc.icon}','${doc.label}','${doc.desc}')">
+                    <span class="ref-icon">${doc.icon}</span>
+                    <div>
+                        <div class="ref-title">${doc.label}</div>
+                        <div class="ref-desc">${doc.desc}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // === COMPOSE ===
+        function renderRecipients() {
+            document.getElementById('recipient-grid').innerHTML = recipients.map(r => `
+                <button class="recipient-btn ${selectedRecipients.has(r) ? 'selected' : ''}"
+                    onclick="toggleRecipient('${r}')">${r}</button>
+            `).join('');
+            document.getElementById('send-btn').disabled = selectedRecipients.size === 0;
+        }
+
+        function toggleRecipient(r) {
+            selectedRecipients.has(r) ? selectedRecipients.delete(r) : selectedRecipients.add(r);
+            renderRecipients();
+        }
+
+        function openCompose() {
+            selectedRecipients.clear();
+            document.getElementById('compose-subject').value = '';
+            document.getElementById('compose-body').value = '';
+            document.getElementById('compose-form-view').style.display = 'block';
+            document.getElementById('compose-confirm-view').style.display = 'none';
+            renderRecipients();
+            document.getElementById('compose-modal').classList.add('open');
+        }
+
+        function closeCompose() {
+            document.getElementById('compose-modal').classList.remove('open');
+        }
+
+        function showConfirm() {
+            const subject = document.getElementById('compose-subject').value;
+            const to = [...selectedRecipients].join(', ');
+            document.getElementById('confirm-meta').textContent =
+                'To: ' + to + (subject ? ' — "' + subject + '"' : '');
+            document.getElementById('compose-form-view').style.display = 'none';
+            document.getElementById('compose-confirm-view').style.display = 'block';
+        }
+
+        function hideConfirm() {
+            document.getElementById('compose-form-view').style.display = 'block';
+            document.getElementById('compose-confirm-view').style.display = 'none';
+        }
+
+        async function confirmSend() {
+            const payload = {
+                to: [...selectedRecipients],
+                subject: document.getElementById('compose-subject').value,
+                body: document.getElementById('compose-body').value
+            };
+            await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            closeCompose();
+            showToast('Email sent to ' + payload.to.join(', '));
+        }
+
+        // === ASK ENGINE ===
+        async function sendQuestion() {
+            const input = document.getElementById('ask-input');
+            const q = input.value.trim();
+            if (!q) return;
+            const container = document.getElementById('ask-messages');
+            container.innerHTML += `<div class="ask-msg user">${escapeHtml(q)}</div>`;
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            const res = await fetch('/api/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: q })
+            });
+            const data = await res.json();
+            container.innerHTML += `<div class="ask-msg assistant">${escapeHtml(data.answer)}</div>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        // === REFERENCE MODAL ===
+        function openRefModal(icon, label, desc) {
+            document.getElementById('ref-modal-icon').textContent = icon;
+            document.getElementById('ref-modal-title').textContent = label;
+            document.getElementById('ref-modal-desc').textContent =
+                desc + '. This reference document would contain searchable content in the production PRL Engine — indexed, parsed, and available for decision prompts.';
+            document.getElementById('ref-modal').classList.add('open');
+        }
+
+        function closeRefModal() {
+            document.getElementById('ref-modal').classList.remove('open');
+        }
+
+        // === TOAST ===
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = '✓ ' + msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('open');
+                }
+            });
+        });
+
+        // === INIT ===
+        loadSchedule();
+        loadEmails();
+        loadLetters();
+        loadGovernance();
+        loadReferences();
+    </script>
+</body>
+</html>

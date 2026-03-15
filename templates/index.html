@@ -3,464 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRL Engine — Predictive Readiness Loop</title>
+    <title>PRL Engine — Policy Reasoning Layer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
-            --bg-deep: #080e14;
+            --bg-deep: #060b10;
             --bg-base: #0a1219;
-            --bg-card: #0f1a24;
+            --bg-card: #0e1822;
             --bg-card-hover: #121f2e;
-            --bg-input: #0a1218;
-            --border: #1a2a3a;
-            --border-hover: #2a4a6a;
+            --bg-input: #080f16;
+            --border: #162030;
+            --border-hover: #243a54;
             --border-active: #1a3a5a;
-            --text-primary: #e0e0e0;
-            --text-secondary: #c0d0e0;
-            --text-muted: #6a8aaa;
-            --text-dim: #4a6a8a;
-            --text-faint: #2a3a4a;
-            --accent-blue: #4dabf7;
-            --accent-blue-light: #90d0f0;
-            --accent-blue-bg: #1a4a6a;
-            --accent-blue-border: #2a6a8a;
-            --accent-green: #69db7c;
-            --accent-green-bg: #1a6b3a;
-            --accent-green-light: #c0f0d0;
-            --accent-green-border: #2a8b5a;
-            --accent-red: #ff6b6b;
-            --accent-red-bg: #3a1518;
-            --accent-red-border: #5a2528;
-            --accent-orange: #ffa94d;
-            --accent-orange-bg: #3a2a15;
-            --accent-orange-border: #5a4a28;
+            --text-primary: #e4e8ec;
+            --text-secondary: #b8c8d8;
+            --text-muted: #6888a8;
+            --text-dim: #3e5570;
+            --text-faint: #1e3040;
+            --accent-blue: #4da8f7;
+            --accent-blue-light: #92d0ff;
+            --accent-blue-bg: #0f2a44;
+            --accent-blue-border: #1a4a72;
+            --accent-green: #56c47c;
+            --accent-green-bg: #0e2e1e;
+            --accent-green-light: #a8f0c0;
+            --accent-green-border: #1a5a38;
+            --accent-red: #f06060;
+            --accent-red-bg: #301010;
+            --accent-red-border: #5a2020;
+            --accent-amber: #e0a040;
+            --accent-amber-bg: #2a1e08;
+            --accent-amber-border: #5a4018;
+            --accent-cyan: #40d0d0;
+            --accent-cyan-bg: #082828;
+            --accent-cyan-border: #186060;
             --font-mono: 'JetBrains Mono', monospace;
             --font-body: 'IBM Plex Sans', sans-serif;
+            --radius: 6px;
         }
-
-        body {
-            font-family: var(--font-body);
-            background: var(--bg-deep);
-            color: var(--text-secondary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(40px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-deep); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        body { font-family: var(--font-body); background: var(--bg-deep); color: var(--text-secondary); min-height: 100vh; display: flex; flex-direction: column; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--bg-deep); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
         /* === HEADER === */
-        .header {
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-base);
-        }
-        .header-left { display: flex; align-items: center; gap: 16px; }
-        .logo {
-            width: 36px; height: 36px; border-radius: 6px;
-            background: linear-gradient(135deg, #1a4a6a, #1a6b3a);
-            display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-mono); font-weight: 800; font-size: 14px;
-            color: #e0f0ff; border: 1px solid var(--accent-blue-border);
-        }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: #e8f0f8;
-            font-family: var(--font-mono); letter-spacing: 0.05em;
-        }
-        .header-subtitle {
-            font-size: 10px; color: var(--text-dim);
-            font-family: var(--font-mono); letter-spacing: 0.12em; margin-top: 2px;
-        }
-        .header-right { display: flex; align-items: center; gap: 20px; }
-        .status-badge {
-            display: flex; align-items: center; gap: 8px;
-            padding: 6px 12px; border-radius: 4px;
-            background: #0f1a22; border: 1px solid var(--border);
-        }
-        .status-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--accent-green); animation: pulse 2s infinite;
-        }
-        .status-text {
-            font-size: 10px; color: var(--accent-green);
-            font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.08em;
-        }
-        .clock {
-            font-size: 12px; color: var(--text-dim); font-family: var(--font-mono);
-        }
+        .header { padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: var(--bg-base); }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .logo { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #1a4a6a 0%, #1a6b3a 100%); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 800; font-size: 13px; color: #e0f0ff; border: 1px solid #2a6a8a; letter-spacing: .04em; }
+        .header-title { font-size: 15px; font-weight: 700; color: #e8f0f8; font-family: var(--font-mono); letter-spacing: .06em; }
+        .header-sub { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .14em; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .status-pill { display: flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 20px; background: #0a1810; border: 1px solid var(--accent-green-border); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); animation: pulse 2s infinite; }
+        .status-txt { font-size: 10px; color: var(--accent-green); font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; }
+        .clock { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
 
         /* === TABS === */
-        .tab-bar {
-            display: flex; gap: 2px; padding: 0 24px;
-            background: var(--bg-base); border-bottom: 1px solid var(--border);
-        }
-        .tab-btn {
-            padding: 12px 20px; border: none; cursor: pointer;
-            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-            letter-spacing: 0.08em; transition: all 0.15s ease;
-            background: transparent; color: var(--text-dim);
-            border-bottom: 2px solid transparent;
-            display: flex; align-items: center; gap: 8px;
-        }
+        .tab-bar { display: flex; gap: 1px; padding: 0 24px; background: var(--bg-base); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab-btn { padding: 11px 18px; border: none; cursor: pointer; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; transition: all .15s; background: transparent; color: var(--text-dim); border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
         .tab-btn:hover { color: var(--text-muted); }
-        .tab-btn.active {
-            background: #0d1820; color: var(--accent-blue-light);
-            border-bottom-color: var(--accent-blue);
-        }
-        .tab-icon { font-size: 14px; }
+        .tab-btn.active { background: rgba(77,168,247,.04); color: var(--accent-blue-light); border-bottom-color: var(--accent-blue); }
+        .tab-icon { font-size: 13px; }
+        .tab-badge { font-size: 9px; background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid var(--accent-green-border); padding: 1px 6px; border-radius: 10px; font-weight: 700; }
 
-        /* === MAIN LAYOUT === */
-        .main-layout {
-            flex: 1; display: flex; overflow: hidden;
-        }
-        .main-content {
-            flex: 1; overflow-y: auto; padding: 24px;
-            animation: fadeIn 0.3s ease;
-        }
+        /* === LAYOUT === */
+        .main-layout { flex: 1; display: flex; overflow: hidden; }
+        .main-content { flex: 1; overflow-y: auto; padding: 24px; }
+        .tab-panel { display: none; flex-direction: column; animation: fadeIn .25s ease; }
+        .tab-panel.active { display: flex; }
 
         /* === SIDEBAR === */
-        .sidebar {
-            width: 220px; border-left: 1px solid var(--border);
-            background: var(--bg-base); padding: 20px 16px;
-            display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
-        }
-        .sidebar-label {
-            font-size: 10px; color: var(--text-dim);
-            font-family: var(--font-mono); letter-spacing: 0.12em; margin-bottom: 4px;
-        }
-        .sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
-        .sidebar-btn {
-            width: 100%; padding: 10px 14px; border-radius: 6px;
-            font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-            cursor: pointer; text-align: left; letter-spacing: 0.05em;
-            border: 1px solid var(--border); background: var(--bg-card);
-            color: #8aaacc; transition: all 0.15s ease;
-        }
-        .sidebar-btn:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-        .sidebar-btn.primary {
-            background: var(--accent-green-bg); color: var(--accent-green-light);
-            border-color: var(--accent-green-border);
-        }
-        .sidebar-btn.primary:hover { background: #1f7d45; }
+        .sidebar { width: 210px; border-left: 1px solid var(--border); background: var(--bg-base); padding: 18px 14px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .sidebar-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .14em; margin-bottom: 2px; text-transform: uppercase; }
+        .sidebar-divider { height: 1px; background: var(--border); margin: 6px 0; }
+        .sb { width: 100%; padding: 9px 12px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; cursor: pointer; text-align: left; letter-spacing: .04em; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); transition: all .15s; }
+        .sb:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+        .sb.primary { background: var(--accent-green-bg); color: var(--accent-green-light); border-color: var(--accent-green-border); }
+        .sb.primary:hover { background: #143e28; }
+        .sb.kb { background: var(--accent-cyan-bg); color: var(--accent-cyan); border-color: var(--accent-cyan-border); }
 
-        /* === SECTION HEADERS === */
-        .section-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px;
-        }
-        .section-title {
-            font-size: 16px; font-weight: 700; color: var(--text-primary);
-            font-family: var(--font-mono);
-        }
-        .section-meta {
-            font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);
-        }
-
-        /* === CARDS / ROWS === */
-        .data-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 16px; background: var(--bg-card); border-radius: 6px;
-            border: 1px solid var(--border); cursor: pointer;
-            transition: all 0.15s ease; margin-bottom: 8px;
-        }
+        /* === COMMON === */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
+        .section-meta { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+        .data-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; transition: all .15s; margin-bottom: 6px; }
         .data-row:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-        .data-row-left { display: flex; align-items: center; gap: 16px; }
-
-        .badge {
-            font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-            text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
-            font-family: var(--font-mono);
-        }
+        .badge { font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; font-family: var(--font-mono); }
         .badge-high { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
-        .badge-medium { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid var(--accent-orange-border); }
-        .badge-low, .badge-active { background: #153a1a; color: var(--accent-green); border: 1px solid #285a30; }
-        .badge-review { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid var(--accent-orange-border); }
-        .badge-reference { background: #15253a; color: #74c0fc; border: 1px solid #284a5a; }
-
-        .date-label {
-            font-size: 12px; color: var(--text-dim);
-            font-family: var(--font-mono); min-width: 90px;
-        }
+        .badge-medium { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
+        .badge-low,.badge-active { background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid var(--accent-green-border); }
+        .badge-review { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
+        .badge-reference { background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue-border); }
+        .date-label { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); min-width: 88px; }
         .row-title { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-        .row-subtitle {
-            font-size: 10px; color: #5a7a9a; font-family: var(--font-mono);
-            text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
-        }
+        .row-sub { font-size: 9.5px; color: var(--text-dim); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; margin-top: 3px; }
 
-        /* === EMAIL INBOX === */
-        .email-row {
-            display: flex; align-items: center; gap: 16px;
-            padding: 12px 16px; border-radius: 5px;
-            border: 1px solid var(--border); cursor: pointer;
-            transition: all 0.15s ease; margin-bottom: 4px;
-        }
+        /* === EMAIL === */
+        .email-row { display: flex; align-items: center; gap: 14px; padding: 11px 14px; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; transition: all .15s; margin-bottom: 3px; }
         .email-row.unread { background: var(--bg-card-hover); border-color: var(--border-active); }
         .email-row.read { background: var(--bg-card); }
-        .email-row:hover { background: #162636; }
-        .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-blue); flex-shrink: 0; }
-        .read-spacer { width: 8px; flex-shrink: 0; }
-        .email-from {
-            font-size: 12px; color: var(--text-muted); font-weight: 600;
-            min-width: 80px; font-family: var(--font-mono);
-        }
-        .email-subject { font-size: 13px; flex: 1; }
-        .email-subject.unread { color: #d0e0f0; font-weight: 600; }
-        .email-subject.read { color: #8a9aaa; font-weight: 400; }
-        .email-time { font-size: 11px; color: #4a5a6a; font-family: var(--font-mono); }
+        .email-row:hover { background: #142636; }
+        .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-blue); flex-shrink: 0; }
+        .email-from { font-size: 11px; color: var(--text-muted); font-weight: 600; min-width: 76px; font-family: var(--font-mono); }
+        .email-subj { font-size: 12.5px; flex: 1; }
+        .email-subj.unread { color: #d0e0f0; font-weight: 600; }
+        .email-subj.read { color: #7a8a9a; }
+        .email-time { font-size: 10px; color: #3a4a5a; font-family: var(--font-mono); }
+        .compose-btn { background: var(--accent-green-bg); color: var(--accent-green-light); border: 1px solid var(--accent-green-border); padding: 7px 14px; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--font-mono); }
+        .compose-btn:hover { background: #143e28; }
 
-        /* === LETTERS GRID === */
-        .letter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .letter-card {
-            padding: 16px; background: var(--bg-card); border-radius: 6px;
-            border: 1px solid var(--border); cursor: pointer; transition: all 0.15s ease;
-        }
+        /* === LETTERS === */
+        .letter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .letter-card { padding: 14px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; transition: all .15s; }
         .letter-card:hover { border-color: var(--border-hover); }
-        .letter-title { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; }
-        .letter-type {
-            font-size: 10px; color: #5a7a9a; font-family: var(--font-mono);
-            text-transform: uppercase; letter-spacing: 0.08em;
-        }
 
-        /* === ASK VIEW === */
-        .ask-messages {
-            flex: 1; overflow-y: auto; display: flex; flex-direction: column;
-            gap: 10px; margin-bottom: 16px; min-height: 250px;
-        }
-        .ask-msg {
-            padding: 12px 16px; border-radius: 6px; font-size: 13px;
-            line-height: 1.6; white-space: pre-wrap; max-width: 85%;
-            animation: slideUp 0.3s ease;
-        }
-        .ask-msg.system {
-            background: #1a2a2a; color: #6aaa8a; border: 1px solid #2a4a3a;
-            align-self: flex-start;
-        }
-        .ask-msg.user {
-            background: #1a2a4a; color: #b0d0f0; border: 1px solid var(--accent-blue-border);
-            align-self: flex-end;
-        }
-        .ask-msg.assistant {
-            background: var(--bg-card); color: #a0b8cc; border: 1px solid var(--border);
-            align-self: flex-start;
-        }
+        /* === ASK / PRL ENGINE === */
+        .ask-container { display: flex; flex-direction: column; height: 100%; min-height: 420px; }
+        .ask-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+        .ask-msg { padding: 14px 18px; border-radius: 8px; font-size: 13px; line-height: 1.7; max-width: 92%; animation: slideUp .3s ease; }
+        .ask-msg.system { background: var(--accent-cyan-bg); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); align-self: flex-start; font-family: var(--font-mono); font-size: 11.5px; }
+        .ask-msg.user { background: var(--accent-blue-bg); color: var(--accent-blue-light); border: 1px solid var(--accent-blue-border); align-self: flex-end; }
+        .ask-msg.assistant { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); align-self: flex-start; white-space: pre-wrap; }
+        .ask-msg.assistant .sources-bar { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px; }
+        .source-chip { font-size: 9.5px; font-family: var(--font-mono); padding: 3px 8px; border-radius: 3px; background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue-border); letter-spacing: .04em; }
         .ask-input-row { display: flex; gap: 8px; }
-        .ask-input {
-            flex: 1; padding: 12px 16px; border-radius: 6px;
-            border: 1px solid #2a3a4a; background: var(--bg-input);
-            color: #c0d8e8; font-size: 13px; font-family: var(--font-mono);
-            outline: none;
-        }
+        .ask-input { flex: 1; padding: 12px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-input); color: #c0d8e8; font-size: 13px; font-family: var(--font-mono); outline: none; transition: border-color .2s; }
         .ask-input:focus { border-color: var(--accent-blue); }
+        .ask-input::placeholder { color: var(--text-dim); }
+        .thinking-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; align-self: flex-start; }
+        .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin .8s linear infinite; }
 
-        /* === COMPOSE BUTTON === */
-        .compose-btn {
-            background: var(--accent-green-bg); color: var(--accent-green-light);
-            border: 1px solid var(--accent-green-border);
-            padding: 8px 16px; border-radius: 5px; font-size: 12px; font-weight: 700;
-            cursor: pointer; font-family: var(--font-mono); letter-spacing: 0.05em;
-        }
-        .compose-btn:hover { background: #1f7d45; }
+        /* === KNOWLEDGE BASE === */
+        .kb-upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 20px; }
+        .kb-upload-zone:hover, .kb-upload-zone.dragover { border-color: var(--accent-cyan); background: rgba(64,208,208,.03); }
+        .kb-upload-zone .icon { font-size: 32px; margin-bottom: 10px; }
+        .kb-upload-zone .label { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+        .kb-upload-zone .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-family: var(--font-mono); }
+        .kb-doc-list { display: flex; flex-direction: column; gap: 6px; }
+        .kb-doc-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+        .kb-doc-info { display: flex; align-items: center; gap: 12px; }
+        .kb-doc-icon { font-size: 20px; }
+        .kb-doc-name { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+        .kb-doc-meta { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
+        .kb-doc-delete { background: none; border: 1px solid var(--accent-red-border); color: var(--accent-red); font-size: 10px; font-family: var(--font-mono); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .kb-doc-delete:hover { background: var(--accent-red-bg); }
+        .kb-stats { display: flex; gap: 12px; margin-bottom: 20px; }
+        .kb-stat { flex: 1; padding: 16px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
+        .kb-stat-value { font-size: 24px; font-weight: 800; font-family: var(--font-mono); color: var(--accent-cyan); }
+        .kb-stat-label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .1em; margin-top: 4px; text-transform: uppercase; }
+        .upload-form { display: none; margin-bottom: 16px; padding: 18px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--accent-cyan-border); }
+        .upload-form.open { display: block; animation: slideUp .2s ease; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .form-row label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .1em; min-width: 80px; text-transform: uppercase; }
+        .form-select, .form-text { padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-secondary); font-size: 12px; font-family: var(--font-mono); outline: none; flex: 1; }
+        .form-select:focus, .form-text:focus { border-color: var(--accent-cyan); }
+        .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 8px; display: none; }
+        .progress-bar.active { display: block; }
+        .progress-fill { height: 100%; background: var(--accent-cyan); border-radius: 2px; transition: width .3s; width: 0%; }
 
         /* === REFERENCE PANEL === */
-        .ref-panel {
-            border-top: 1px solid var(--border); background: var(--bg-base);
-            padding: 16px 24px;
-        }
-        .ref-label {
-            font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);
-            letter-spacing: 0.12em; margin-bottom: 12px;
-        }
-        .ref-grid { display: flex; gap: 10px; }
-        .ref-card {
-            flex: 1; padding: 14px 16px; border-radius: 6px;
-            background: var(--bg-card); border: 1px solid var(--border);
-            cursor: pointer; text-align: left; transition: all 0.15s ease;
-            display: flex; align-items: center; gap: 10px;
-        }
+        .ref-panel { border-top: 1px solid var(--border); background: var(--bg-base); padding: 14px 24px; }
+        .ref-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .14em; margin-bottom: 10px; text-transform: uppercase; }
+        .ref-grid { display: flex; gap: 8px; }
+        .ref-card { flex: 1; padding: 12px 14px; border-radius: var(--radius); background: var(--bg-card); border: 1px solid var(--border); cursor: pointer; text-align: left; transition: all .15s; display: flex; align-items: center; gap: 10px; }
         .ref-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-        .ref-icon { font-size: 20px; }
-        .ref-title {
-            font-size: 12px; font-weight: 700; color: #b0c8d8;
-            font-family: var(--font-mono);
-        }
-        .ref-desc { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+        .ref-icon { font-size: 18px; }
+        .ref-title { font-size: 11px; font-weight: 700; color: #a8bcc8; font-family: var(--font-mono); }
+        .ref-desc { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; }
 
         /* === FOOTER === */
-        .footer {
-            padding: 10px 24px; border-top: 1px solid var(--border);
-            background: var(--bg-deep); display: flex;
-            justify-content: space-between; align-items: center;
-        }
-        .footer-text {
-            font-size: 10px; color: var(--text-faint);
-            font-family: var(--font-mono); letter-spacing: 0.1em;
-        }
+        .footer { padding: 8px 24px; border-top: 1px solid var(--border); background: var(--bg-deep); display: flex; justify-content: space-between; align-items: center; }
+        .footer-text { font-size: 9.5px; color: var(--text-faint); font-family: var(--font-mono); letter-spacing: .08em; }
+
+        /* === BUTTONS === */
+        .btn { padding: 9px 18px; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--font-mono); transition: all .15s; letter-spacing: .04em; }
+        .btn-primary { background: var(--accent-green-bg); color: var(--accent-green-light); border: 1px solid var(--accent-green-border); }
+        .btn-primary:hover { background: #143e28; }
+        .btn-primary:disabled { background: #0e1a16; color: #2a3a2a; border-color: #1a2a1a; cursor: default; }
+        .btn-secondary { background: #101820; color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-danger { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
+        .btn-cyan { background: var(--accent-cyan-bg); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); }
+        .btn-cyan:hover { background: #0e3838; }
 
         /* === MODAL === */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-            display: none; align-items: center; justify-content: center;
-            z-index: 1000; backdrop-filter: blur(4px);
-        }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
         .modal-overlay.open { display: flex; }
-        .modal {
-            width: 520px; max-height: 80vh; background: #0d1820;
-            border-radius: 10px; border: 1px solid var(--border-active);
-            box-shadow: 0 24px 80px rgba(0,0,0,0.6); overflow: hidden;
-            animation: slideUp 0.25s ease;
-        }
-        .modal-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 20px; border-bottom: 1px solid var(--border);
-        }
-        .modal-title {
-            font-size: 14px; font-weight: 700; color: var(--text-primary);
-            font-family: var(--font-mono);
-        }
-        .modal-close {
-            background: none; border: none; color: #5a6a7a;
-            font-size: 20px; cursor: pointer; padding: 4px;
-        }
-        .modal-body { padding: 20px; }
-        .form-label {
-            font-size: 11px; color: #5a7a9a; font-family: var(--font-mono);
-            letter-spacing: 0.1em; display: block; margin-bottom: 8px;
-        }
-        .form-group { margin-bottom: 16px; }
-        .recipient-grid { display: flex; gap: 8px; flex-wrap: wrap; }
-        .recipient-btn {
-            padding: 8px 14px; border-radius: 5px; font-size: 12px; font-weight: 600;
-            cursor: pointer; font-family: var(--font-mono);
-            background: var(--bg-input); color: #5a6a7a; border: 1px solid var(--border);
-            transition: all 0.15s ease;
-        }
-        .recipient-btn.selected {
-            background: var(--accent-blue-bg); color: var(--accent-blue-light);
-            border-color: var(--accent-blue-border);
-        }
-        .form-input {
-            width: 100%; padding: 10px 14px; border-radius: 5px;
-            border: 1px solid var(--border); background: var(--bg-input);
-            color: #c0d8e8; font-size: 13px; font-family: var(--font-mono);
-            outline: none;
-        }
-        .form-input:focus { border-color: var(--accent-blue); }
-        .form-textarea {
-            width: 100%; padding: 12px 14px; border-radius: 5px;
-            border: 1px solid var(--border); background: var(--bg-input);
-            color: #c0d8e8; font-size: 13px; line-height: 1.6;
-            font-family: var(--font-body); outline: none; resize: vertical;
-            min-height: 120px;
-        }
-        .form-textarea:focus { border-color: var(--accent-blue); }
-        .modal-actions {
-            display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;
-        }
-        .btn {
-            padding: 10px 20px; border-radius: 5px; font-size: 12px;
-            font-weight: 700; cursor: pointer; font-family: var(--font-mono);
-            transition: all 0.15s ease;
-        }
-        .btn-secondary {
-            background: #1a2030; color: #6a7a8a; border: 1px solid #2a3040;
-        }
-        .btn-primary {
-            background: var(--accent-green-bg); color: var(--accent-green-light);
-            border: 1px solid var(--accent-green-border);
-        }
-        .btn-primary:hover { background: #1f7d45; }
-        .btn-primary:disabled {
-            background: #1a2a2a; color: #3a4a3a; border-color: #2a3a2a;
-            cursor: default;
-        }
-        .btn-danger {
-            background: var(--accent-red-bg); color: var(--accent-red);
-            border: 1px solid var(--accent-red-border);
-        }
-
-        /* === CONFIRM === */
-        .confirm-view { padding: 32px; text-align: center; }
-        .confirm-icon { font-size: 32px; margin-bottom: 16px; }
-        .confirm-title {
-            font-size: 14px; font-weight: 700; color: var(--text-primary);
-            margin-bottom: 8px; font-family: var(--font-mono);
-        }
-        .confirm-meta {
-            font-size: 12px; color: var(--text-muted); margin-bottom: 24px;
-            font-family: var(--font-mono);
-        }
+        .modal { width: 520px; max-height: 80vh; background: #0c1620; border-radius: 10px; border: 1px solid var(--border-active); box-shadow: 0 24px 80px rgba(0,0,0,.6); overflow: hidden; animation: slideUp .2s ease; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+        .modal-title { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
+        .modal-close { background: none; border: none; color: #4a5a6a; font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 18px; }
+        .recipient-grid { display: flex; gap: 7px; flex-wrap: wrap; }
+        .recipient-btn { padding: 7px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--font-mono); background: var(--bg-input); color: #4a5a6a; border: 1px solid var(--border); transition: all .15s; }
+        .recipient-btn.selected { background: var(--accent-blue-bg); color: var(--accent-blue-light); border-color: var(--accent-blue-border); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+        .confirm-view { padding: 28px; text-align: center; }
+        .confirm-icon { font-size: 28px; margin-bottom: 12px; }
+        .confirm-title { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); margin-bottom: 6px; }
+        .confirm-meta { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 20px; }
         .confirm-actions { display: flex; justify-content: center; gap: 12px; }
+        .form-label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .1em; display: block; margin-bottom: 6px; text-transform: uppercase; }
+        .form-group { margin-bottom: 14px; }
+        .form-input { width: 100%; padding: 9px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-input); color: #b8d0e0; font-size: 12.5px; font-family: var(--font-mono); outline: none; }
+        .form-input:focus { border-color: var(--accent-blue); }
+        .form-textarea { width: 100%; padding: 10px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-input); color: #b8d0e0; font-size: 12.5px; line-height: 1.6; font-family: var(--font-body); outline: none; resize: vertical; min-height: 110px; }
+        .form-textarea:focus { border-color: var(--accent-blue); }
 
         /* === TOAST === */
-        .toast {
-            position: fixed; bottom: 24px; right: 24px; z-index: 2000;
-            padding: 14px 24px; border-radius: 8px;
-            background: var(--accent-green-bg); color: var(--accent-green-light);
-            font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-            border: 1px solid var(--accent-green-border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            animation: toastIn 0.3s ease;
-            display: none;
-        }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 2000; padding: 12px 20px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,.4); animation: toastIn .3s ease; display: none; }
         .toast.show { display: block; }
+        .toast.success { background: var(--accent-green-bg); color: var(--accent-green-light); border: 1px solid var(--accent-green-border); }
+        .toast.error { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
+        .toast.info { background: var(--accent-cyan-bg); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); }
 
-        /* === REF MODAL === */
-        .ref-modal-body { padding: 28px; }
-        .ref-modal-icon { font-size: 28px; margin-bottom: 12px; }
-        .ref-modal-title {
-            font-size: 16px; color: var(--text-primary);
-            font-family: var(--font-mono); margin-bottom: 8px;
-        }
-        .ref-modal-desc {
-            font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;
-        }
-        .ref-modal-status {
-            padding: 16px; background: var(--bg-input); border-radius: 6px;
-            border: 1px solid var(--border); margin-bottom: 20px;
-            font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);
-            letter-spacing: 0.08em;
-        }
-
-        /* === TAB PANELS === */
-        .tab-panel { display: none; }
-        .tab-panel.active {
-            display: flex; flex-direction: column;
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* === RESPONSIVE === */
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .ref-grid { flex-wrap: wrap; }
             .ref-card { min-width: 45%; }
             .letter-grid { grid-template-columns: 1fr; }
-            .tab-btn { padding: 10px 12px; font-size: 10px; }
+            .tab-btn { padding: 9px 10px; font-size: 9.5px; }
             .tab-btn .tab-icon { display: none; }
+            .kb-stats { flex-wrap: wrap; }
+            .kb-stat { min-width: 45%; }
         }
     </style>
 </head>
@@ -471,14 +240,14 @@
         <div class="header-left">
             <div class="logo">PRL</div>
             <div>
-                <div class="header-title">PREDICTIVE READINESS LOOP</div>
-                <div class="header-subtitle">NAS MISSION READINESS ENGINE</div>
+                <div class="header-title">POLICY REASONING LAYER</div>
+                <div class="header-sub">DECISION INTELLIGENCE ENGINE v2.0</div>
             </div>
         </div>
         <div class="header-right">
-            <div class="status-badge">
+            <div class="status-pill">
                 <span class="status-dot"></span>
-                <span class="status-text">SYSTEM ONLINE</span>
+                <span class="status-txt">ENGINE ONLINE</span>
             </div>
             <span class="clock" id="clock"></span>
         </div>
@@ -486,99 +255,131 @@
 
     <!-- TABS -->
     <div class="tab-bar">
-        <button class="tab-btn active" data-tab="schedule">
-            <span class="tab-icon">📅</span> SCHEDULE
-        </button>
-        <button class="tab-btn" data-tab="email">
-            <span class="tab-icon">✉️</span> EMAIL
-        </button>
-        <button class="tab-btn" data-tab="letters">
-            <span class="tab-icon">📄</span> LETTERS
-        </button>
-        <button class="tab-btn" data-tab="ask">
-            <span class="tab-icon">❓</span> ASK QUESTIONS
-        </button>
-        <button class="tab-btn" data-tab="governance">
-            <span class="tab-icon">🛡️</span> GOVERNANCE
-        </button>
+        <button class="tab-btn active" data-tab="schedule"><span class="tab-icon">📅</span> SCHEDULE</button>
+        <button class="tab-btn" data-tab="email"><span class="tab-icon">✉️</span> EMAIL</button>
+        <button class="tab-btn" data-tab="letters"><span class="tab-icon">📄</span> LETTERS</button>
+        <button class="tab-btn" data-tab="ask"><span class="tab-icon">🧠</span> ASK PRL</button>
+        <button class="tab-btn" data-tab="kb"><span class="tab-icon">📚</span> KNOWLEDGE BASE <span class="tab-badge" id="kb-badge">0</span></button>
+        <button class="tab-btn" data-tab="governance"><span class="tab-icon">🛡️</span> GOVERNANCE</button>
     </div>
 
     <!-- MAIN -->
     <div class="main-layout">
         <div class="main-content">
 
-            <!-- SCHEDULE TAB -->
+            <!-- SCHEDULE -->
             <div class="tab-panel active" id="panel-schedule">
-                <div class="section-header">
-                    <h2 class="section-title">UPCOMING EVENTS</h2>
-                    <span class="section-meta" id="schedule-count"></span>
-                </div>
+                <div class="section-header"><h2 class="section-title">UPCOMING EVENTS</h2><span class="section-meta" id="schedule-count"></span></div>
                 <div id="schedule-list"></div>
             </div>
 
-            <!-- EMAIL TAB -->
+            <!-- EMAIL -->
             <div class="tab-panel" id="panel-email">
-                <div class="section-header">
-                    <h2 class="section-title">INBOX</h2>
-                    <button class="compose-btn" onclick="openCompose()">+ COMPOSE</button>
-                </div>
+                <div class="section-header"><h2 class="section-title">INBOX</h2><button class="compose-btn" onclick="openCompose()">+ COMPOSE</button></div>
                 <div id="email-list"></div>
             </div>
 
-            <!-- LETTERS TAB -->
+            <!-- LETTERS -->
             <div class="tab-panel" id="panel-letters">
-                <div class="section-header">
-                    <h2 class="section-title">LETTER TEMPLATES</h2>
-                </div>
+                <div class="section-header"><h2 class="section-title">LETTER TEMPLATES</h2></div>
                 <div class="letter-grid" id="letter-list"></div>
             </div>
 
-            <!-- ASK TAB -->
+            <!-- ASK PRL (RAG-Powered) -->
             <div class="tab-panel" id="panel-ask">
-                <div class="section-header">
-                    <h2 class="section-title">ASK THE PRL ENGINE</h2>
-                </div>
-                <div class="ask-messages" id="ask-messages">
-                    <div class="ask-msg system">PRL Decision Engine ready. Ask a question about maintenance signals, staffing, equipment health, or mission readiness.</div>
-                </div>
-                <div class="ask-input-row">
-                    <input class="ask-input" id="ask-input" placeholder="Ask about signals, readiness, risk patterns..." onkeydown="if(event.key==='Enter')sendQuestion()">
-                    <button class="btn btn-primary" onclick="sendQuestion()">SEND</button>
+                <div class="section-header"><h2 class="section-title">ASK THE PRL ENGINE</h2><span class="section-meta" id="ask-doc-count"></span></div>
+                <div class="ask-container">
+                    <div class="ask-messages" id="ask-messages">
+                        <div class="ask-msg system">PRL Decision Engine ready. Submit a policy question — I will retrieve relevant documents, reason across your knowledge base, and return a cited, structured answer.<br><br>Example: "Can a technician take LWOP after sick leave exhaustion under Article 33?"</div>
+                    </div>
+                    <div class="ask-input-row">
+                        <input class="ask-input" id="ask-input" placeholder="Ask a policy question..." onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendQuestion()">
+                        <button class="btn btn-primary" id="ask-send-btn" onclick="sendQuestion()">SEND</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- GOVERNANCE TAB -->
-            <div class="tab-panel" id="panel-governance">
-                <div class="section-header">
-                    <h2 class="section-title">GOVERNANCE CONTROLS</h2>
+            <!-- KNOWLEDGE BASE -->
+            <div class="tab-panel" id="panel-kb">
+                <div class="section-header"><h2 class="section-title">KNOWLEDGE BASE</h2></div>
+                <div class="kb-stats" id="kb-stats"></div>
+
+                <div class="kb-upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+                    <div class="icon">📂</div>
+                    <div class="label">Upload Policy Documents</div>
+                    <div class="hint">PDF · DOCX · TXT — Drag and drop or click to browse</div>
+                    <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.md" style="display:none" onchange="handleFileSelect(this)">
                 </div>
+
+                <div class="upload-form" id="upload-form">
+                    <div class="form-row">
+                        <label>FILE</label>
+                        <span id="upload-filename" style="font-size:12px;color:var(--accent-cyan);font-family:var(--font-mono)"></span>
+                    </div>
+                    <div class="form-row">
+                        <label>NAME</label>
+                        <input class="form-text" id="upload-name" placeholder="Document display name">
+                    </div>
+                    <div class="form-row">
+                        <label>CATEGORY</label>
+                        <select class="form-select" id="upload-category"></select>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+                        <button class="btn btn-secondary" onclick="cancelUpload()">CANCEL</button>
+                        <button class="btn btn-cyan" onclick="submitUpload()">INGEST DOCUMENT</button>
+                    </div>
+                    <div class="progress-bar" id="upload-progress"><div class="progress-fill" id="upload-progress-fill"></div></div>
+                </div>
+
+                <div style="margin-top:4px">
+                    <div class="sidebar-label" style="margin-bottom:10px">INGESTED DOCUMENTS</div>
+                    <div class="kb-doc-list" id="kb-doc-list">
+                        <div style="text-align:center;padding:24px;color:var(--text-dim);font-family:var(--font-mono);font-size:11px;">No documents ingested yet.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GOVERNANCE -->
+            <div class="tab-panel" id="panel-governance">
+                <div class="section-header"><h2 class="section-title">GOVERNANCE CONTROLS</h2></div>
                 <div id="governance-list"></div>
             </div>
-
         </div>
 
         <!-- SIDEBAR -->
         <div class="sidebar">
             <div class="sidebar-label">QUICK ACTIONS</div>
-            <button class="sidebar-btn primary" onclick="openCompose()">✉️ &nbsp;CREATE EMAIL</button>
-            <button class="sidebar-btn" onclick="switchTab('ask')">❓ &nbsp;ASK PRL</button>
-            <button class="sidebar-btn" onclick="switchTab('governance')">🛡️ &nbsp;GOVERNANCE</button>
+            <button class="sb primary" onclick="openCompose()">✉️ CREATE EMAIL</button>
+            <button class="sb" onclick="switchTab('ask')">🧠 ASK PRL</button>
+            <button class="sb kb" onclick="switchTab('kb')">📚 KNOWLEDGE BASE</button>
+            <button class="sb" onclick="switchTab('governance')">🛡️ GOVERNANCE</button>
             <div class="sidebar-divider"></div>
             <div class="sidebar-label">EMAIL TO</div>
-            <button class="sidebar-btn" onclick="openCompose()">→ ETR</button>
-            <button class="sidebar-btn" onclick="openCompose()">→ HR</button>
+            <button class="sb" onclick="openCompose()">→ ETR</button>
+            <button class="sb" onclick="openCompose()">→ HR</button>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-label">ENGINE STATUS</div>
+            <div style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono);padding:4px 0;">
+                <div id="sidebar-docs" style="margin-bottom:4px">Docs: loading...</div>
+                <div id="sidebar-api" style="margin-bottom:4px">API: checking...</div>
+            </div>
         </div>
     </div>
 
-    <!-- REFERENCE DOCS -->
+    <!-- REFERENCE PANEL -->
     <div class="ref-panel">
         <div class="ref-label">REFERENCE DOCUMENTS</div>
-        <div class="ref-grid" id="ref-grid"></div>
+        <div class="ref-grid">
+            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📘</span><div><div class="ref-title">CBA / Bargaining</div><div class="ref-desc">Upload to knowledge base</div></div></div>
+            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📗</span><div><div class="ref-title">HRPM</div><div class="ref-desc">Upload to knowledge base</div></div></div>
+            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📙</span><div><div class="ref-title">Management Guides</div><div class="ref-desc">Upload to knowledge base</div></div></div>
+            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📋</span><div><div class="ref-title">Memos</div><div class="ref-desc">Upload to knowledge base</div></div></div>
+        </div>
     </div>
 
     <!-- FOOTER -->
     <div class="footer">
-        <span class="footer-text">PRL ENGINE v0.1 — PROTOTYPE — FAA NAS READINESS</span>
+        <span class="footer-text">PRL ENGINE v2.0 — DECISION INTELLIGENCE — POLICY REASONING LAYER</span>
         <span class="footer-text">"We will not wait for failure to teach us."</span>
     </div>
 
@@ -586,52 +387,21 @@
     <div class="modal-overlay" id="compose-modal">
         <div class="modal">
             <div id="compose-form-view">
-                <div class="modal-header">
-                    <span class="modal-title">COMPOSE EMAIL</span>
-                    <button class="modal-close" onclick="closeCompose()">×</button>
-                </div>
+                <div class="modal-header"><span class="modal-title">COMPOSE EMAIL</span><button class="modal-close" onclick="closeCompose()">×</button></div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">TO:</label>
-                        <div class="recipient-grid" id="recipient-grid"></div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">SUBJECT:</label>
-                        <input class="form-input" id="compose-subject" placeholder="Enter subject...">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">BODY:</label>
-                        <textarea class="form-textarea" id="compose-body" placeholder="Compose message..."></textarea>
-                    </div>
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="closeCompose()">BACK</button>
-                        <button class="btn btn-primary" id="send-btn" onclick="showConfirm()" disabled>SEND</button>
-                    </div>
+                    <div class="form-group"><label class="form-label">TO:</label><div class="recipient-grid" id="recipient-grid"></div></div>
+                    <div class="form-group"><label class="form-label">SUBJECT:</label><input class="form-input" id="compose-subject" placeholder="Enter subject..."></div>
+                    <div class="form-group"><label class="form-label">BODY:</label><textarea class="form-textarea" id="compose-body" placeholder="Compose message..."></textarea></div>
+                    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeCompose()">BACK</button><button class="btn btn-primary" id="send-btn" onclick="showConfirm()" disabled>SEND</button></div>
                 </div>
             </div>
-            <div id="compose-confirm-view" style="display:none;">
+            <div id="compose-confirm-view" style="display:none">
                 <div class="confirm-view">
                     <div class="confirm-icon">✉️</div>
                     <div class="confirm-title">CONFIRM SEND?</div>
                     <div class="confirm-meta" id="confirm-meta"></div>
-                    <div class="confirm-actions">
-                        <button class="btn btn-danger" onclick="hideConfirm()">NO</button>
-                        <button class="btn btn-primary" onclick="confirmSend()">YES</button>
-                    </div>
+                    <div class="confirm-actions"><button class="btn btn-danger" onclick="hideConfirm()">NO</button><button class="btn btn-primary" onclick="confirmSend()">YES</button></div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- REFERENCE DOC MODAL -->
-    <div class="modal-overlay" id="ref-modal">
-        <div class="modal" style="width:480px;">
-            <div class="ref-modal-body">
-                <div class="ref-modal-icon" id="ref-modal-icon"></div>
-                <div class="ref-modal-title" id="ref-modal-title"></div>
-                <div class="ref-modal-desc" id="ref-modal-desc"></div>
-                <div class="ref-modal-status">STATUS: INDEXED ● LAST UPDATED: 2026-02-28</div>
-                <button class="btn btn-secondary" onclick="closeRefModal()">CLOSE</button>
             </div>
         </div>
     </div>
@@ -639,220 +409,206 @@
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
 
-    <script>
-        // === STATE ===
-        const recipients = ['ETR', 'HR', 'Supervisor', 'AIT Leadership'];
-        let selectedRecipients = new Set();
+<script>
+// === STATE ===
+let selectedRecipients = new Set();
+let pendingFile = null;
 
-        // === CLOCK ===
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+// === CLOCK ===
+function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false }); }
+setInterval(updateClock, 1000); updateClock();
 
-        // === TAB SWITCHING ===
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tab === tabId);
-            });
-            document.querySelectorAll('.tab-panel').forEach(panel => {
-                panel.classList.toggle('active', panel.id === 'panel-' + tabId);
-            });
-        }
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-        });
+// === TABS ===
+function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
+    if (id === 'kb') loadDocuments();
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
-        // === LOAD DATA ===
-        async function loadSchedule() {
-            const res = await fetch('/api/schedule');
-            const data = await res.json();
-            document.getElementById('schedule-count').textContent = data.length + ' scheduled';
-            document.getElementById('schedule-list').innerHTML = data.map(item => `
-                <div class="data-row">
-                    <div class="data-row-left">
-                        <span class="date-label">${item.date}</span>
-                        <span class="row-title">${item.title}</span>
-                    </div>
-                    <span class="badge badge-${item.priority}">${item.priority}</span>
+// === TOAST ===
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = (type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : 'ℹ ') + msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// === LOAD DATA ===
+async function loadSchedule() {
+    const r = await fetch('/api/schedule'); const d = await r.json();
+    document.getElementById('schedule-count').textContent = d.length + ' scheduled';
+    document.getElementById('schedule-list').innerHTML = d.map(i => `<div class="data-row"><div style="display:flex;align-items:center;gap:14px"><span class="date-label">${i.date}</span><span class="row-title">${i.title}</span></div><span class="badge badge-${i.priority}">${i.priority}</span></div>`).join('');
+}
+async function loadEmails() {
+    const r = await fetch('/api/emails'); const d = await r.json();
+    document.getElementById('email-list').innerHTML = d.map(e => `<div class="email-row ${e.read?'read':'unread'}">${e.read?'<span style="width:7px"></span>':'<span class="unread-dot"></span>'}<span class="email-from">${e.from}</span><span class="email-subj ${e.read?'read':'unread'}">${e.subject}</span><span class="email-time">${e.time}</span></div>`).join('');
+}
+async function loadLetters() {
+    const r = await fetch('/api/letters'); const d = await r.json();
+    document.getElementById('letter-list').innerHTML = d.map(t => `<div class="letter-card"><div style="font-size:13px;color:var(--text-secondary);font-weight:600;margin-bottom:5px">${t.title}</div><span class="row-sub">${t.type}</span></div>`).join('');
+}
+async function loadGovernance() {
+    const r = await fetch('/api/governance'); const d = await r.json();
+    const bm = {'Active':'active','Under Review':'review','Reference':'reference'};
+    document.getElementById('governance-list').innerHTML = d.map(i => `<div class="data-row"><div><div class="row-title">${i.title}</div><div class="row-sub">${i.category}</div></div><span class="badge badge-${bm[i.status]||'active'}">${i.status}</span></div>`).join('');
+}
+async function loadCategories() {
+    const r = await fetch('/api/categories'); const cats = await r.json();
+    document.getElementById('upload-category').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+// === KNOWLEDGE BASE ===
+async function loadDocuments() {
+    const r = await fetch('/api/documents'); const d = await r.json();
+    document.getElementById('kb-badge').textContent = d.documents.length;
+    document.getElementById('sidebar-docs').textContent = 'Docs: ' + d.documents.length + ' (' + d.total_chunks + ' chunks)';
+    document.getElementById('ask-doc-count').textContent = d.total_chunks + ' policy chunks indexed';
+
+    document.getElementById('kb-stats').innerHTML = `
+        <div class="kb-stat"><div class="kb-stat-value">${d.documents.length}</div><div class="kb-stat-label">Documents</div></div>
+        <div class="kb-stat"><div class="kb-stat-value">${d.total_chunks}</div><div class="kb-stat-label">Chunks Indexed</div></div>
+    `;
+
+    const list = document.getElementById('kb-doc-list');
+    if (d.documents.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-dim);font-family:var(--font-mono);font-size:11px;">No documents ingested yet. Upload policy documents above.</div>';
+    } else {
+        const catIcons = {'CBA / Bargaining':'📘','HRPM':'📗','Management Guide':'📙','Memo':'📋','FAA Order':'📁','Local Procedure':'📂','Other':'📄'};
+        list.innerHTML = d.documents.map(doc => `
+            <div class="kb-doc-row">
+                <div class="kb-doc-info">
+                    <span class="kb-doc-icon">${catIcons[doc.category]||'📄'}</span>
+                    <div><div class="kb-doc-name">${doc.name}</div><div class="kb-doc-meta">${doc.category} · ${doc.chunks} chunks</div></div>
                 </div>
-            `).join('');
+                <button class="kb-doc-delete" onclick="deleteDoc('${doc.name.replace(/'/g,"\\'")}')">DELETE</button>
+            </div>
+        `).join('');
+    }
+}
+async function deleteDoc(name) {
+    if (!confirm('Remove "' + name + '" from knowledge base?')) return;
+    await fetch('/api/documents/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name}) });
+    showToast('Removed: ' + name, 'info');
+    loadDocuments();
+}
+
+// === FILE UPLOAD ===
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+
+function handleFileSelect(input) { if(input.files.length) handleFile(input.files[0]); }
+function handleFile(file) {
+    pendingFile = file;
+    document.getElementById('upload-filename').textContent = file.name;
+    document.getElementById('upload-name').value = file.name.replace(/\.[^.]+$/, '');
+    document.getElementById('upload-form').classList.add('open');
+}
+function cancelUpload() { pendingFile = null; document.getElementById('upload-form').classList.remove('open'); document.getElementById('file-input').value = ''; }
+
+async function submitUpload() {
+    if (!pendingFile) return;
+    const bar = document.getElementById('upload-progress');
+    const fill = document.getElementById('upload-progress-fill');
+    bar.classList.add('active'); fill.style.width = '30%';
+
+    const fd = new FormData();
+    fd.append('file', pendingFile);
+    fd.append('name', document.getElementById('upload-name').value || pendingFile.name);
+    fd.append('category', document.getElementById('upload-category').value);
+
+    fill.style.width = '60%';
+    try {
+        const r = await fetch('/api/documents/upload', { method:'POST', body:fd });
+        const d = await r.json();
+        fill.style.width = '100%';
+        if (d.status === 'success') {
+            showToast(`Ingested "${d.document}" — ${d.chunks} chunks indexed`, 'success');
+        } else {
+            showToast(d.message || 'Upload failed', 'error');
+        }
+    } catch(e) { showToast('Upload error: ' + e.message, 'error'); }
+
+    setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0%'; cancelUpload(); loadDocuments(); }, 800);
+}
+
+// === ASK PRL (RAG) ===
+async function sendQuestion() {
+    const input = document.getElementById('ask-input');
+    const q = input.value.trim();
+    if (!q) return;
+    const container = document.getElementById('ask-messages');
+    const sendBtn = document.getElementById('ask-send-btn');
+
+    // Show user message
+    container.innerHTML += `<div class="ask-msg user">${escapeHtml(q)}</div>`;
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    // Show thinking indicator
+    container.innerHTML += `<div class="thinking-indicator" id="thinking"><div class="spinner"></div>Reasoning across policy sources...</div>`;
+    container.scrollTop = container.scrollHeight;
+
+    try {
+        const r = await fetch('/api/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question:q}) });
+        const d = await r.json();
+
+        // Remove thinking indicator
+        const thinkEl = document.getElementById('thinking');
+        if (thinkEl) thinkEl.remove();
+
+        // Build answer with sources
+        let sourcesHtml = '';
+        if (d.sources && d.sources.length > 0) {
+            sourcesHtml = `<div class="sources-bar">${d.sources.map(s => `<span class="source-chip">📎 ${s.name}</span>`).join('')}</div>`;
         }
 
-        async function loadEmails() {
-            const res = await fetch('/api/emails');
-            const data = await res.json();
-            document.getElementById('email-list').innerHTML = data.map(e => `
-                <div class="email-row ${e.read ? 'read' : 'unread'}">
-                    ${e.read ? '<span class="read-spacer"></span>' : '<span class="unread-dot"></span>'}
-                    <span class="email-from">${e.from}</span>
-                    <span class="email-subject ${e.read ? 'read' : 'unread'}">${e.subject}</span>
-                    <span class="email-time">${e.time}</span>
-                </div>
-            `).join('');
-        }
+        container.innerHTML += `<div class="ask-msg assistant">${escapeHtml(d.answer)}${sourcesHtml}</div>`;
+    } catch(e) {
+        const thinkEl = document.getElementById('thinking');
+        if (thinkEl) thinkEl.remove();
+        container.innerHTML += `<div class="ask-msg assistant" style="border-color:var(--accent-red-border)">⚠️ Error: ${escapeHtml(e.message)}</div>`;
+    }
 
-        async function loadLetters() {
-            const res = await fetch('/api/letters');
-            const data = await res.json();
-            document.getElementById('letter-list').innerHTML = data.map(t => `
-                <div class="letter-card">
-                    <div class="letter-title">${t.title}</div>
-                    <span class="letter-type">${t.type}</span>
-                </div>
-            `).join('');
-        }
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+    container.scrollTop = container.scrollHeight;
+}
 
-        async function loadGovernance() {
-            const res = await fetch('/api/governance');
-            const data = await res.json();
-            const badgeMap = { 'Active': 'active', 'Under Review': 'review', 'Reference': 'reference' };
-            document.getElementById('governance-list').innerHTML = data.map(item => `
-                <div class="data-row">
-                    <div>
-                        <div class="row-title">${item.title}</div>
-                        <div class="row-subtitle">${item.category}</div>
-                    </div>
-                    <span class="badge badge-${badgeMap[item.status] || 'active'}">${item.status}</span>
-                </div>
-            `).join('');
-        }
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-        async function loadReferences() {
-            const res = await fetch('/api/references');
-            const data = await res.json();
-            document.getElementById('ref-grid').innerHTML = data.map(doc => `
-                <div class="ref-card" onclick="openRefModal('${doc.icon}','${doc.label}','${doc.desc}')">
-                    <span class="ref-icon">${doc.icon}</span>
-                    <div>
-                        <div class="ref-title">${doc.label}</div>
-                        <div class="ref-desc">${doc.desc}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
+// === COMPOSE ===
+function renderRecipients() {
+    fetch('/api/recipients').then(r=>r.json()).then(recs => {
+        document.getElementById('recipient-grid').innerHTML = recs.map(r => `<button class="recipient-btn ${selectedRecipients.has(r)?'selected':''}" onclick="toggleRecipient('${r}')">${r}</button>`).join('');
+        document.getElementById('send-btn').disabled = selectedRecipients.size === 0;
+    });
+}
+function toggleRecipient(r) { selectedRecipients.has(r)?selectedRecipients.delete(r):selectedRecipients.add(r); renderRecipients(); }
+function openCompose() { selectedRecipients.clear(); document.getElementById('compose-subject').value=''; document.getElementById('compose-body').value=''; document.getElementById('compose-form-view').style.display='block'; document.getElementById('compose-confirm-view').style.display='none'; renderRecipients(); document.getElementById('compose-modal').classList.add('open'); }
+function closeCompose() { document.getElementById('compose-modal').classList.remove('open'); }
+function showConfirm() { const s=document.getElementById('compose-subject').value; document.getElementById('confirm-meta').textContent='To: '+[...selectedRecipients].join(', ')+(s?' — "'+s+'"':''); document.getElementById('compose-form-view').style.display='none'; document.getElementById('compose-confirm-view').style.display='block'; }
+function hideConfirm() { document.getElementById('compose-form-view').style.display='block'; document.getElementById('compose-confirm-view').style.display='none'; }
+async function confirmSend() { const p={to:[...selectedRecipients],subject:document.getElementById('compose-subject').value,body:document.getElementById('compose-body').value}; await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}); closeCompose(); showToast('Email sent to '+p.to.join(', ')); }
 
-        // === COMPOSE ===
-        function renderRecipients() {
-            document.getElementById('recipient-grid').innerHTML = recipients.map(r => `
-                <button class="recipient-btn ${selectedRecipients.has(r) ? 'selected' : ''}"
-                    onclick="toggleRecipient('${r}')">${r}</button>
-            `).join('');
-            document.getElementById('send-btn').disabled = selectedRecipients.size === 0;
-        }
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
 
-        function toggleRecipient(r) {
-            selectedRecipients.has(r) ? selectedRecipients.delete(r) : selectedRecipients.add(r);
-            renderRecipients();
-        }
+// === HEALTH CHECK ===
+async function checkHealth() {
+    try {
+        const r = await fetch('/health'); const d = await r.json();
+        document.getElementById('sidebar-api').textContent = 'API: ' + (d.api_key_configured ? '✓ configured' : '✗ no key');
+        document.getElementById('sidebar-api').style.color = d.api_key_configured ? 'var(--accent-green)' : 'var(--accent-amber)';
+    } catch(e) { document.getElementById('sidebar-api').textContent = 'API: error'; }
+}
 
-        function openCompose() {
-            selectedRecipients.clear();
-            document.getElementById('compose-subject').value = '';
-            document.getElementById('compose-body').value = '';
-            document.getElementById('compose-form-view').style.display = 'block';
-            document.getElementById('compose-confirm-view').style.display = 'none';
-            renderRecipients();
-            document.getElementById('compose-modal').classList.add('open');
-        }
-
-        function closeCompose() {
-            document.getElementById('compose-modal').classList.remove('open');
-        }
-
-        function showConfirm() {
-            const subject = document.getElementById('compose-subject').value;
-            const to = [...selectedRecipients].join(', ');
-            document.getElementById('confirm-meta').textContent =
-                'To: ' + to + (subject ? ' — "' + subject + '"' : '');
-            document.getElementById('compose-form-view').style.display = 'none';
-            document.getElementById('compose-confirm-view').style.display = 'block';
-        }
-
-        function hideConfirm() {
-            document.getElementById('compose-form-view').style.display = 'block';
-            document.getElementById('compose-confirm-view').style.display = 'none';
-        }
-
-        async function confirmSend() {
-            const payload = {
-                to: [...selectedRecipients],
-                subject: document.getElementById('compose-subject').value,
-                body: document.getElementById('compose-body').value
-            };
-            await fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            closeCompose();
-            showToast('Email sent to ' + payload.to.join(', '));
-        }
-
-        // === ASK ENGINE ===
-        async function sendQuestion() {
-            const input = document.getElementById('ask-input');
-            const q = input.value.trim();
-            if (!q) return;
-            const container = document.getElementById('ask-messages');
-            container.innerHTML += `<div class="ask-msg user">${escapeHtml(q)}</div>`;
-            input.value = '';
-            container.scrollTop = container.scrollHeight;
-
-            const res = await fetch('/api/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: q })
-            });
-            const data = await res.json();
-            container.innerHTML += `<div class="ask-msg assistant">${escapeHtml(data.answer)}</div>`;
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function escapeHtml(text) {
-            const d = document.createElement('div');
-            d.textContent = text;
-            return d.innerHTML;
-        }
-
-        // === REFERENCE MODAL ===
-        function openRefModal(icon, label, desc) {
-            document.getElementById('ref-modal-icon').textContent = icon;
-            document.getElementById('ref-modal-title').textContent = label;
-            document.getElementById('ref-modal-desc').textContent =
-                desc + '. This reference document would contain searchable content in the production PRL Engine — indexed, parsed, and available for decision prompts.';
-            document.getElementById('ref-modal').classList.add('open');
-        }
-
-        function closeRefModal() {
-            document.getElementById('ref-modal').classList.remove('open');
-        }
-
-        // === TOAST ===
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = '✓ ' + msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // Close modals on overlay click
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    overlay.classList.remove('open');
-                }
-            });
-        });
-
-        // === INIT ===
-        loadSchedule();
-        loadEmails();
-        loadLetters();
-        loadGovernance();
-        loadReferences();
-    </script>
+// === INIT ===
+loadSchedule(); loadEmails(); loadLetters(); loadGovernance(); loadCategories(); loadDocuments(); checkHealth();
+</script>
 </body>
 </html>

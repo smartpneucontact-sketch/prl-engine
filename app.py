@@ -1,16 +1,46 @@
-from flask import Flask, render_template, jsonify, request
+"""
+PRL Engine v2 — Predictive Readiness Loop
+Flask application with RAG-powered policy decision support.
+"""
+
+import os
+import logging
 from datetime import datetime
+from pathlib import Path
+from werkzeug.utils import secure_filename
+
+from flask import Flask, render_template, jsonify, request
+
+from rag_engine import (
+    ingest_document,
+    query_prl,
+    get_document_stats,
+    delete_document,
+    search_policies,
+    UPLOAD_DIR,
+)
+
+# ---------------------------------------------------------------------------
+# App Setup
+# ---------------------------------------------------------------------------
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB max upload
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md"}
 
-# --- Simulated Data ---
+# ---------------------------------------------------------------------------
+# Simulated Data (Schedule, Emails, Governance, Letters)
+# ---------------------------------------------------------------------------
 
 SCHEDULE_DATA = [
-    {"id": 1, "date": "2026-03-06", "title": "NAS Equipment Review", "priority": "high", "status": "upcoming"},
-    {"id": 2, "date": "2026-03-07", "title": "Predictive Maintenance Sync", "priority": "medium", "status": "upcoming"},
-    {"id": 3, "date": "2026-03-10", "title": "PRL Stakeholder Briefing", "priority": "high", "status": "upcoming"},
-    {"id": 4, "date": "2026-03-12", "title": "Outage Pattern Analysis", "priority": "low", "status": "upcoming"},
-    {"id": 5, "date": "2026-03-14", "title": "ESU Environmental Trends Review", "priority": "medium", "status": "upcoming"},
+    {"id": 1, "date": "2026-03-16", "title": "NAS Equipment Review", "priority": "high"},
+    {"id": 2, "date": "2026-03-17", "title": "Predictive Maintenance Sync", "priority": "medium"},
+    {"id": 3, "date": "2026-03-20", "title": "PRL Stakeholder Briefing", "priority": "high"},
+    {"id": 4, "date": "2026-03-22", "title": "Outage Pattern Analysis", "priority": "low"},
+    {"id": 5, "date": "2026-03-24", "title": "ESU Environmental Trends Review", "priority": "medium"},
 ]
 
 EMAILS_DATA = [
@@ -35,20 +65,30 @@ LETTER_TEMPLATES = [
     {"id": 5, "title": "Last Chance Agreement", "type": "Settlement"},
 ]
 
-REFERENCE_DOCS = [
-    {"id": "cba", "label": "CBA / Bargaining Manual", "icon": "📘", "desc": "Collective Bargaining Agreement reference"},
-    {"id": "hrpm", "label": "HRPM", "icon": "📗", "desc": "Human Resources Policy Manual"},
-    {"id": "guides", "label": "Management Guides", "icon": "📙", "desc": "Operational management guidelines"},
-    {"id": "memos", "label": "Memos", "icon": "📋", "desc": "Internal memoranda archive"},
+EMAIL_RECIPIENTS = ["ETR", "HR", "Supervisor", "AIT Leadership"]
+
+DOC_CATEGORIES = [
+    "CBA / Bargaining",
+    "HRPM",
+    "Management Guide",
+    "Memo",
+    "FAA Order",
+    "Local Procedure",
+    "Other",
 ]
 
-
-# --- Routes ---
+# ---------------------------------------------------------------------------
+# Routes — Pages
+# ---------------------------------------------------------------------------
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
+
+# ---------------------------------------------------------------------------
+# Routes — Data APIs
+# ---------------------------------------------------------------------------
 
 @app.route("/api/schedule")
 def api_schedule():
@@ -70,15 +110,19 @@ def api_letters():
     return jsonify(LETTER_TEMPLATES)
 
 
-@app.route("/api/references")
-def api_references():
-    return jsonify(REFERENCE_DOCS)
+@app.route("/api/recipients")
+def api_recipients():
+    return jsonify(EMAIL_RECIPIENTS)
+
+
+@app.route("/api/categories")
+def api_categories():
+    return jsonify(DOC_CATEGORIES)
 
 
 @app.route("/api/send-email", methods=["POST"])
 def api_send_email():
     data = request.json
-    # In production, integrate with actual email system
     return jsonify({
         "status": "sent",
         "to": data.get("to", []),
@@ -87,22 +131,113 @@ def api_send_email():
     })
 
 
+# ---------------------------------------------------------------------------
+# Routes — RAG / Knowledge Base
+# ---------------------------------------------------------------------------
+
+@app.route("/api/documents", methods=["GET"])
+def api_documents():
+    """Get stats about all ingested documents."""
+    stats = get_document_stats()
+    return jsonify(stats)
+
+
+@app.route("/api/documents/upload", methods=["POST"])
+def api_upload_document():
+    """Upload and ingest a policy document."""
+    if "file" not in request.files:
+        return jsonify({"status": "error", "message": "No file provided."}), 400
+
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"status": "error", "message": "No file selected."}), 400
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({
+            "status": "error",
+            "message": f"Unsupported file type: {ext}. Use PDF, DOCX, or TXT.",
+        }), 400
+
+    category = request.form.get("category", "Other")
+    doc_name = request.form.get("name", file.filename)
+
+    # Save file
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    file.save(filepath)
+
+    # Ingest into vector store
+    result = ingest_document(filepath, doc_name, category)
+    return jsonify(result)
+
+
+@app.route("/api/documents/delete", methods=["POST"])
+def api_delete_document():
+    """Delete a document from the knowledge base."""
+    data = request.json
+    doc_name = data.get("name", "")
+    if not doc_name:
+        return jsonify({"status": "error", "message": "No document name provided."}), 400
+    result = delete_document(doc_name)
+    return jsonify(result)
+
+
+# ---------------------------------------------------------------------------
+# Routes — PRL Query (RAG-powered)
+# ---------------------------------------------------------------------------
+
 @app.route("/api/ask", methods=["POST"])
 def api_ask():
+    """
+    PRL Decision Engine query.
+    Retrieves relevant policy chunks and reasons with Claude.
+    """
     data = request.json
-    question = data.get("question", "")
-    # Simulated PRL Engine response
-    response = (
-        f'Decision prompt generated for: "{question}"\n\n'
-        "▸ Signal analysis: scanning work orders, repeat failures, ESU trends\n"
-        "▸ Risk assessment: calculating mission impact score\n"
-        "▸ Recommended actions: prioritized by urgency and resource availability\n\n"
-        "This is a simulated response. In production, PRL would integrate real NAS data streams."
-    )
-    return jsonify({"answer": response})
+    question = data.get("question", "").strip()
 
+    if not question:
+        return jsonify({"answer": "Please enter a question.", "sources": [], "mode": "error"})
+
+    result = query_prl(question)
+    return jsonify(result)
+
+
+@app.route("/api/search", methods=["POST"])
+def api_search():
+    """Direct vector search without Claude reasoning (faster, for reference lookups)."""
+    data = request.json
+    query = data.get("query", "").strip()
+    category = data.get("category", None)
+
+    if not query:
+        return jsonify({"results": []})
+
+    results = search_policies(query, category=category)
+    return jsonify({"results": results})
+
+
+# ---------------------------------------------------------------------------
+# Health Check
+# ---------------------------------------------------------------------------
+
+@app.route("/health")
+def health():
+    stats = get_document_stats()
+    return jsonify({
+        "status": "ok",
+        "version": "2.0.0",
+        "engine": "PRL — Policy Reasoning Layer",
+        "documents_ingested": stats["total_chunks"],
+        "api_key_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "timestamp": datetime.utcnow().isoformat(),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Run
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "0") == "1")

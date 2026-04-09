@@ -1,8 +1,13 @@
 __pycache__/
 *.pyc
+*.pyo
 .env
-venv/
-.venv/
+*.db
+vectorstore/
+uploads/*.pdf
+uploads/*.docx
+uploads/*.txt
+.DS_Store
 *.egg-info/
 dist/
 build/

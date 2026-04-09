@@ -3,233 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRL Engine — Policy Reasoning Layer</title>
+    <title>PRL Engine v3 — Policy Reasoning Layer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg-deep: #060b10;
-            --bg-base: #0a1219;
-            --bg-card: #0e1822;
-            --bg-card-hover: #121f2e;
-            --bg-input: #080f16;
-            --border: #162030;
-            --border-hover: #243a54;
-            --border-active: #1a3a5a;
-            --text-primary: #e4e8ec;
-            --text-secondary: #b8c8d8;
-            --text-muted: #6888a8;
-            --text-dim: #3e5570;
-            --text-faint: #1e3040;
-            --accent-blue: #4da8f7;
-            --accent-blue-light: #92d0ff;
-            --accent-blue-bg: #0f2a44;
-            --accent-blue-border: #1a4a72;
-            --accent-green: #56c47c;
-            --accent-green-bg: #0e2e1e;
-            --accent-green-light: #a8f0c0;
-            --accent-green-border: #1a5a38;
-            --accent-red: #f06060;
-            --accent-red-bg: #301010;
-            --accent-red-border: #5a2020;
-            --accent-amber: #e0a040;
-            --accent-amber-bg: #2a1e08;
-            --accent-amber-border: #5a4018;
-            --accent-cyan: #40d0d0;
-            --accent-cyan-bg: #082828;
-            --accent-cyan-border: #186060;
+            --navy-900: #0a1628;
+            --navy-800: #0f2040;
+            --navy-700: #162d50;
+            --navy-600: #1e3a5f;
+            --navy-500: #2a4a72;
+            --navy-400: #3d6898;
+            --navy-300: #5a8ab8;
+            --navy-200: #8ab4d8;
+            --navy-100: #c0d8ee;
+            --navy-50: #e8f0f8;
+            --gold-600: #b8860b;
+            --gold-500: #c9972a;
+            --gold-400: #d4a843;
+            --gold-300: #e0be6a;
+            --gold-200: #ecd48f;
+            --gold-100: #f5e8be;
+            --gold-50: #fdf8ec;
+            --white: #ffffff;
+            --gray-50: #f8f9fa;
+            --gray-100: #f1f3f5;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #adb5bd;
+            --gray-600: #868e96;
+            --gray-700: #495057;
+            --gray-800: #343a40;
+            --gray-900: #212529;
+            --success: #2e7d32;
+            --success-bg: #e8f5e9;
+            --success-border: #c8e6c9;
+            --warning: #f57f17;
+            --warning-bg: #fff8e1;
+            --warning-border: #fff3b0;
+            --danger: #c62828;
+            --danger-bg: #ffebee;
+            --danger-border: #ffcdd2;
+            --info: #1565c0;
+            --info-bg: #e3f2fd;
+            --info-border: #bbdefb;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
-            --font-body: 'IBM Plex Sans', sans-serif;
-            --radius: 6px;
+            --radius-sm: 4px;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+            --shadow: 0 2px 8px rgba(0,0,0,.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
         }
-        body { font-family: var(--font-body); background: var(--bg-deep); color: var(--text-secondary); min-height: 100vh; display: flex; flex-direction: column; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+        body { font-family: var(--font-sans); background: var(--gray-50); color: var(--gray-800); min-height: 100vh; display: flex; flex-direction: column; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--bg-deep); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--gray-400)}
 
         /* === HEADER === */
-        .header { padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: var(--bg-base); }
-        .header-left { display: flex; align-items: center; gap: 14px; }
-        .logo { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #1a4a6a 0%, #1a6b3a 100%); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 800; font-size: 13px; color: #e0f0ff; border: 1px solid #2a6a8a; letter-spacing: .04em; }
-        .header-title { font-size: 15px; font-weight: 700; color: #e8f0f8; font-family: var(--font-mono); letter-spacing: .06em; }
-        .header-sub { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .14em; margin-top: 2px; }
-        .header-right { display: flex; align-items: center; gap: 16px; }
-        .status-pill { display: flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 20px; background: #0a1810; border: 1px solid var(--accent-green-border); }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); animation: pulse 2s infinite; }
-        .status-txt { font-size: 10px; color: var(--accent-green); font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; }
-        .clock { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+        .header{background:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-700) 100%);padding:0 28px;display:flex;justify-content:space-between;align-items:center;height:64px;box-shadow:0 2px 12px rgba(10,22,40,.3)}
+        .header-left{display:flex;align-items:center;gap:16px}
+        .logo{width:40px;height:40px;border-radius:var(--radius);background:linear-gradient(135deg,var(--gold-500),var(--gold-300));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:900;font-size:14px;color:var(--navy-900);letter-spacing:.05em;box-shadow:0 2px 8px rgba(201,151,42,.3)}
+        .header-title{font-size:17px;font-weight:800;color:var(--white);letter-spacing:.08em}
+        .header-sub{font-size:10px;color:var(--gold-300);font-weight:600;letter-spacing:.16em;margin-top:1px}
+        .header-right{display:flex;align-items:center;gap:16px}
+        .status-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:rgba(46,125,50,.15);border:1px solid rgba(46,125,50,.3)}
+        .status-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite}
+        .status-txt{font-size:10px;color:#81c784;font-weight:700;letter-spacing:.1em;font-family:var(--font-mono)}
+        .header-clock{font-size:11px;color:var(--navy-200);font-family:var(--font-mono)}
+        .header-version{font-size:9px;color:var(--navy-400);font-family:var(--font-mono);letter-spacing:.1em}
 
         /* === TABS === */
-        .tab-bar { display: flex; gap: 1px; padding: 0 24px; background: var(--bg-base); border-bottom: 1px solid var(--border); overflow-x: auto; }
-        .tab-btn { padding: 11px 18px; border: none; cursor: pointer; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; transition: all .15s; background: transparent; color: var(--text-dim); border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
-        .tab-btn:hover { color: var(--text-muted); }
-        .tab-btn.active { background: rgba(77,168,247,.04); color: var(--accent-blue-light); border-bottom-color: var(--accent-blue); }
-        .tab-icon { font-size: 13px; }
-        .tab-badge { font-size: 9px; background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid var(--accent-green-border); padding: 1px 6px; border-radius: 10px; font-weight: 700; }
+        .tab-bar{display:flex;gap:0;padding:0 28px;background:var(--white);border-bottom:1px solid var(--gray-200);box-shadow:var(--shadow-sm);overflow-x:auto}
+        .tab-btn{padding:14px 20px;border:none;cursor:pointer;font-family:var(--font-sans);font-size:12px;font-weight:700;letter-spacing:.03em;transition:all .15s;background:transparent;color:var(--gray-500);border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;white-space:nowrap;position:relative}
+        .tab-btn:hover{color:var(--navy-600);background:var(--gray-50)}
+        .tab-btn.active{color:var(--navy-800);border-bottom-color:var(--gold-500);background:var(--gold-50)}
+        .tab-icon{font-size:15px}
+        .tab-badge{font-size:9px;background:var(--navy-700);color:var(--white);padding:2px 7px;border-radius:10px;font-weight:700;font-family:var(--font-mono)}
+        .tab-badge.alert{background:var(--danger);animation:pulse 2s infinite}
 
         /* === LAYOUT === */
-        .main-layout { flex: 1; display: flex; overflow: hidden; }
-        .main-content { flex: 1; overflow-y: auto; padding: 24px; }
-        .tab-panel { display: none; flex-direction: column; animation: fadeIn .25s ease; }
-        .tab-panel.active { display: flex; }
+        .main-layout{flex:1;display:flex;overflow:hidden}
+        .main-content{flex:1;overflow-y:auto;padding:28px}
+        .tab-panel{display:none;flex-direction:column;gap:20px;animation:fadeIn .25s ease}
+        .tab-panel.active{display:flex}
 
         /* === SIDEBAR === */
-        .sidebar { width: 210px; border-left: 1px solid var(--border); background: var(--bg-base); padding: 18px 14px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
-        .sidebar-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .14em; margin-bottom: 2px; text-transform: uppercase; }
-        .sidebar-divider { height: 1px; background: var(--border); margin: 6px 0; }
-        .sb { width: 100%; padding: 9px 12px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; cursor: pointer; text-align: left; letter-spacing: .04em; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); transition: all .15s; }
-        .sb:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-        .sb.primary { background: var(--accent-green-bg); color: var(--accent-green-light); border-color: var(--accent-green-border); }
-        .sb.primary:hover { background: #143e28; }
-        .sb.kb { background: var(--accent-cyan-bg); color: var(--accent-cyan); border-color: var(--accent-cyan-border); }
+        .sidebar{width:240px;border-left:1px solid var(--gray-200);background:var(--white);padding:24px 18px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;overflow-y:auto}
+        .sb-section{margin-bottom:16px}
+        .sb-label{font-size:9px;color:var(--gray-500);font-weight:700;letter-spacing:.14em;margin-bottom:8px;text-transform:uppercase}
+        .sb-divider{height:1px;background:var(--gray-200);margin:12px 0}
+        .sb-btn{width:100%;padding:10px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;text-align:left;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-700);transition:all .15s;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+        .sb-btn:hover{border-color:var(--navy-300);background:var(--navy-50);color:var(--navy-700)}
+        .sb-btn.primary{background:var(--navy-700);color:var(--white);border-color:var(--navy-700)}
+        .sb-btn.primary:hover{background:var(--navy-600)}
+        .sb-btn.gold{background:var(--gold-50);color:var(--gold-600);border-color:var(--gold-200)}
+        .sb-btn.gold:hover{background:var(--gold-100)}
+        .sb-stat{padding:8px 0}
+        .sb-stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+        .sb-stat-label{font-size:11px;color:var(--gray-500)}
+        .sb-stat-value{font-size:12px;font-weight:700;color:var(--navy-700);font-family:var(--font-mono)}
 
-        /* === COMMON === */
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-        .section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
-        .section-meta { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
-        .data-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; transition: all .15s; margin-bottom: 6px; }
-        .data-row:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-        .badge { font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; font-family: var(--font-mono); }
-        .badge-high { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
-        .badge-medium { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
-        .badge-low,.badge-active { background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid var(--accent-green-border); }
-        .badge-review { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
-        .badge-reference { background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue-border); }
-        .date-label { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); min-width: 88px; }
-        .row-title { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-        .row-sub { font-size: 9.5px; color: var(--text-dim); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; margin-top: 3px; }
+        /* === CARDS / DATA === */
+        .card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:20px;box-shadow:var(--shadow-sm);transition:all .15s}
+        .card:hover{box-shadow:var(--shadow)}
+        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .card-title{font-size:16px;font-weight:700;color:var(--navy-800)}
+        .card-meta{font-size:11px;color:var(--gray-500);font-family:var(--font-mono)}
+        .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .section-title{font-size:18px;font-weight:800;color:var(--navy-800)}
+        .section-meta{font-size:11px;color:var(--gray-500);font-family:var(--font-mono)}
+
+        .data-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--gray-200);cursor:pointer;transition:all .15s;margin-bottom:6px}
+        .data-row:hover{border-color:var(--navy-300);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+        .row-left{display:flex;align-items:center;gap:14px}
+        .row-title{font-size:14px;color:var(--gray-800);font-weight:600}
+        .row-sub{font-size:11px;color:var(--gray-500);margin-top:2px}
+        .date-label{font-size:12px;color:var(--navy-400);font-family:var(--font-mono);min-width:90px;font-weight:600}
+
+        .badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:4px;font-family:var(--font-mono)}
+        .badge-high{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+        .badge-medium{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
+        .badge-low,.badge-active,.badge-upcoming{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+        .badge-review,.badge-in-progress{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
+        .badge-reference{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
+        .badge-pending{background:var(--gray-100);color:var(--gray-600);border:1px solid var(--gray-300)}
+
+        /* === STAT CARDS === */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+        .stat-card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
+        .stat-card.gold{background:linear-gradient(135deg,var(--gold-50),var(--white));border-color:var(--gold-200)}
+        .stat-card.navy{background:linear-gradient(135deg,var(--navy-50),var(--white));border-color:var(--navy-100)}
+        .stat-value{font-size:28px;font-weight:900;font-family:var(--font-mono);color:var(--navy-800)}
+        .stat-card.gold .stat-value{color:var(--gold-600)}
+        .stat-label{font-size:10px;color:var(--gray-500);font-weight:600;letter-spacing:.1em;margin-top:4px;text-transform:uppercase}
 
         /* === EMAIL === */
-        .email-row { display: flex; align-items: center; gap: 14px; padding: 11px 14px; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; transition: all .15s; margin-bottom: 3px; }
-        .email-row.unread { background: var(--bg-card-hover); border-color: var(--border-active); }
-        .email-row.read { background: var(--bg-card); }
-        .email-row:hover { background: #142636; }
-        .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-blue); flex-shrink: 0; }
-        .email-from { font-size: 11px; color: var(--text-muted); font-weight: 600; min-width: 76px; font-family: var(--font-mono); }
-        .email-subj { font-size: 12.5px; flex: 1; }
-        .email-subj.unread { color: #d0e0f0; font-weight: 600; }
-        .email-subj.read { color: #7a8a9a; }
-        .email-time { font-size: 10px; color: #3a4a5a; font-family: var(--font-mono); }
-        .compose-btn { background: var(--accent-green-bg); color: var(--accent-green-light); border: 1px solid var(--accent-green-border); padding: 7px 14px; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--font-mono); }
-        .compose-btn:hover { background: #143e28; }
+        .email-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--gray-200);cursor:pointer;transition:all .15s;margin-bottom:4px;background:var(--white)}
+        .email-row.unread{background:var(--navy-50);border-color:var(--navy-100);font-weight:600}
+        .email-row:hover{border-color:var(--navy-300);box-shadow:var(--shadow-sm)}
+        .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--gold-500);flex-shrink:0}
+        .email-from{font-size:12px;color:var(--navy-600);font-weight:700;min-width:100px}
+        .email-subj{font-size:13px;flex:1;color:var(--gray-700)}
+        .email-subj.unread{color:var(--navy-800);font-weight:600}
+        .email-time{font-size:11px;color:var(--gray-400);font-family:var(--font-mono)}
 
         /* === LETTERS === */
-        .letter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .letter-card { padding: 14px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; transition: all .15s; }
-        .letter-card:hover { border-color: var(--border-hover); }
+        .letter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+        .letter-card{padding:18px;background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);cursor:pointer;transition:all .15s;box-shadow:var(--shadow-sm)}
+        .letter-card:hover{border-color:var(--gold-300);box-shadow:var(--shadow);transform:translateY(-2px)}
+        .letter-card .letter-title{font-size:14px;color:var(--navy-800);font-weight:700;margin-bottom:6px}
+        .letter-card .letter-type{font-size:11px;color:var(--gray-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+        .letter-card .letter-desc{font-size:12px;color:var(--gray-600);margin-top:8px;line-height:1.5}
 
-        /* === ASK / PRL ENGINE === */
-        .ask-container { display: flex; flex-direction: column; height: 100%; min-height: 420px; }
-        .ask-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
-        .ask-msg { padding: 14px 18px; border-radius: 8px; font-size: 13px; line-height: 1.7; max-width: 92%; animation: slideUp .3s ease; }
-        .ask-msg.system { background: var(--accent-cyan-bg); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); align-self: flex-start; font-family: var(--font-mono); font-size: 11.5px; }
-        .ask-msg.user { background: var(--accent-blue-bg); color: var(--accent-blue-light); border: 1px solid var(--accent-blue-border); align-self: flex-end; }
-        .ask-msg.assistant { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); align-self: flex-start; white-space: pre-wrap; }
-        .ask-msg.assistant .sources-bar { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px; }
-        .source-chip { font-size: 9.5px; font-family: var(--font-mono); padding: 3px 8px; border-radius: 3px; background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue-border); letter-spacing: .04em; }
-        .ask-input-row { display: flex; gap: 8px; }
-        .ask-input { flex: 1; padding: 12px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-input); color: #c0d8e8; font-size: 13px; font-family: var(--font-mono); outline: none; transition: border-color .2s; }
-        .ask-input:focus { border-color: var(--accent-blue); }
-        .ask-input::placeholder { color: var(--text-dim); }
-        .thinking-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; align-self: flex-start; }
-        .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin .8s linear infinite; }
+        /* === ASK PRL === */
+        .ask-container{display:flex;flex-direction:column;height:100%;min-height:500px}
+        .ask-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;margin-bottom:16px;padding-right:8px}
+        .ask-msg{padding:18px 22px;border-radius:var(--radius-lg);font-size:14px;line-height:1.75;max-width:92%;animation:slideUp .3s ease}
+        .ask-msg.system{background:linear-gradient(135deg,var(--navy-50),var(--info-bg));color:var(--navy-700);border:1px solid var(--navy-100);align-self:flex-start;font-size:13px}
+        .ask-msg.user{background:var(--navy-700);color:var(--white);align-self:flex-end;border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)}
+        .ask-msg.assistant{background:var(--white);color:var(--gray-800);border:1px solid var(--gray-200);align-self:flex-start;box-shadow:var(--shadow-sm);white-space:pre-wrap;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px}
+        .ask-msg.assistant strong{color:var(--navy-800)}
+        .sources-bar{margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-200);display:flex;flex-wrap:wrap;gap:6px}
+        .source-chip{font-size:10px;font-family:var(--font-mono);padding:4px 10px;border-radius:4px;background:var(--navy-50);color:var(--navy-600);border:1px solid var(--navy-100);font-weight:600;letter-spacing:.03em}
+        .decision-meta{margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-200);display:flex;gap:8px;align-items:center}
+        .feedback-btn{font-size:10px;font-family:var(--font-mono);padding:5px 12px;border-radius:4px;cursor:pointer;font-weight:700;border:1px solid;transition:all .15s}
+        .feedback-btn.approve{background:var(--success-bg);color:var(--success);border-color:var(--success-border)}
+        .feedback-btn.approve:hover{background:#c8e6c9}
+        .feedback-btn.flag{background:var(--warning-bg);color:var(--warning);border-color:var(--warning-border)}
+        .feedback-btn.flag:hover{background:#fff3b0}
+        .feedback-btn.reject{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-border)}
+        .feedback-btn.reject:hover{background:#ffcdd2}
+        .ask-input-row{display:flex;gap:10px;align-items:flex-end}
+        .ask-input{flex:1;padding:14px 18px;border-radius:var(--radius-lg);border:2px solid var(--gray-200);background:var(--white);color:var(--gray-800);font-size:14px;font-family:var(--font-sans);outline:none;transition:border-color .2s;resize:none;min-height:52px;max-height:120px}
+        .ask-input:focus{border-color:var(--gold-400);box-shadow:0 0 0 3px rgba(201,151,42,.1)}
+        .ask-input::placeholder{color:var(--gray-400)}
+        .thinking-indicator{display:inline-flex;align-items:center;gap:10px;padding:14px 20px;border-radius:var(--radius-lg);background:var(--white);border:1px solid var(--gray-200);color:var(--gray-500);font-size:13px;align-self:flex-start;box-shadow:var(--shadow-sm)}
+        .spinner{width:16px;height:16px;border:2px solid var(--gray-200);border-top-color:var(--gold-500);border-radius:50%;animation:spin .8s linear infinite}
 
         /* === KNOWLEDGE BASE === */
-        .kb-upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 20px; }
-        .kb-upload-zone:hover, .kb-upload-zone.dragover { border-color: var(--accent-cyan); background: rgba(64,208,208,.03); }
-        .kb-upload-zone .icon { font-size: 32px; margin-bottom: 10px; }
-        .kb-upload-zone .label { font-size: 13px; color: var(--text-muted); font-weight: 600; }
-        .kb-upload-zone .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; font-family: var(--font-mono); }
-        .kb-doc-list { display: flex; flex-direction: column; gap: 6px; }
-        .kb-doc-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
-        .kb-doc-info { display: flex; align-items: center; gap: 12px; }
-        .kb-doc-icon { font-size: 20px; }
-        .kb-doc-name { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
-        .kb-doc-meta { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
-        .kb-doc-delete { background: none; border: 1px solid var(--accent-red-border); color: var(--accent-red); font-size: 10px; font-family: var(--font-mono); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; }
-        .kb-doc-delete:hover { background: var(--accent-red-bg); }
-        .kb-stats { display: flex; gap: 12px; margin-bottom: 20px; }
-        .kb-stat { flex: 1; padding: 16px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
-        .kb-stat-value { font-size: 24px; font-weight: 800; font-family: var(--font-mono); color: var(--accent-cyan); }
-        .kb-stat-label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .1em; margin-top: 4px; text-transform: uppercase; }
-        .upload-form { display: none; margin-bottom: 16px; padding: 18px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--accent-cyan-border); }
-        .upload-form.open { display: block; animation: slideUp .2s ease; }
-        .form-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .form-row label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .1em; min-width: 80px; text-transform: uppercase; }
-        .form-select, .form-text { padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-secondary); font-size: 12px; font-family: var(--font-mono); outline: none; flex: 1; }
-        .form-select:focus, .form-text:focus { border-color: var(--accent-cyan); }
-        .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 8px; display: none; }
-        .progress-bar.active { display: block; }
-        .progress-fill { height: 100%; background: var(--accent-cyan); border-radius: 2px; transition: width .3s; width: 0%; }
+        .kb-upload-zone{border:2px dashed var(--gray-300);border-radius:var(--radius-lg);padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px;background:var(--white)}
+        .kb-upload-zone:hover,.kb-upload-zone.dragover{border-color:var(--gold-400);background:var(--gold-50)}
+        .kb-upload-zone .icon{font-size:36px;margin-bottom:10px}
+        .kb-upload-zone .label{font-size:14px;color:var(--navy-700);font-weight:700}
+        .kb-upload-zone .hint{font-size:12px;color:var(--gray-500);margin-top:6px}
+        .kb-doc-list{display:flex;flex-direction:column;gap:6px}
+        .kb-doc-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm)}
+        .kb-doc-info{display:flex;align-items:center;gap:14px}
+        .kb-doc-icon{font-size:22px}
+        .kb-doc-name{font-size:13px;color:var(--navy-700);font-weight:700}
+        .kb-doc-meta{font-size:11px;color:var(--gray-500);font-family:var(--font-mono);margin-top:2px}
+        .kb-doc-delete{background:var(--white);border:1px solid var(--danger-border);color:var(--danger);font-size:11px;font-family:var(--font-sans);padding:6px 14px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;transition:all .15s}
+        .kb-doc-delete:hover{background:var(--danger-bg)}
+        .upload-form{display:none;margin-bottom:16px;padding:20px;background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gold-200);box-shadow:var(--shadow)}
+        .upload-form.open{display:block;animation:slideUp .2s ease}
+        .form-row{display:flex;gap:12px;margin-bottom:12px;align-items:center}
+        .form-row label{font-size:11px;color:var(--gray-500);font-weight:700;letter-spacing:.08em;min-width:80px;text-transform:uppercase}
+        .form-select,.form-text{padding:10px 14px;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white);color:var(--gray-700);font-size:13px;outline:none;flex:1;transition:border-color .2s}
+        .form-select:focus,.form-text:focus{border-color:var(--gold-400)}
+        .progress-bar{width:100%;height:4px;background:var(--gray-200);border-radius:2px;overflow:hidden;margin-top:10px;display:none}
+        .progress-bar.active{display:block}
+        .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-500),var(--gold-300));border-radius:2px;transition:width .3s;width:0%}
 
-        /* === REFERENCE PANEL === */
-        .ref-panel { border-top: 1px solid var(--border); background: var(--bg-base); padding: 14px 24px; }
-        .ref-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .14em; margin-bottom: 10px; text-transform: uppercase; }
-        .ref-grid { display: flex; gap: 8px; }
-        .ref-card { flex: 1; padding: 12px 14px; border-radius: var(--radius); background: var(--bg-card); border: 1px solid var(--border); cursor: pointer; text-align: left; transition: all .15s; display: flex; align-items: center; gap: 10px; }
-        .ref-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-        .ref-icon { font-size: 18px; }
-        .ref-title { font-size: 11px; font-weight: 700; color: #a8bcc8; font-family: var(--font-mono); }
-        .ref-desc { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; }
+        /* === GOVERNANCE === */
+        .gov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+        .gov-card{padding:18px;background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);transition:all .15s}
+        .gov-card:hover{border-color:var(--navy-300);box-shadow:var(--shadow)}
+        .gov-title{font-size:14px;font-weight:700;color:var(--navy-800);margin-bottom:4px}
+        .gov-category{font-size:11px;color:var(--gray-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+        .gov-desc{font-size:12px;color:var(--gray-600);margin-top:8px;line-height:1.5}
 
-        /* === FOOTER === */
-        .footer { padding: 8px 24px; border-top: 1px solid var(--border); background: var(--bg-deep); display: flex; justify-content: space-between; align-items: center; }
-        .footer-text { font-size: 9.5px; color: var(--text-faint); font-family: var(--font-mono); letter-spacing: .08em; }
+        /* === DECISIONS/AUDIT TRAIL === */
+        .decision-row{padding:16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--gray-200);margin-bottom:8px;box-shadow:var(--shadow-sm)}
+        .decision-question{font-size:13px;font-weight:600;color:var(--navy-700);margin-bottom:4px}
+        .decision-time{font-size:10px;color:var(--gray-400);font-family:var(--font-mono)}
+        .decision-status{display:flex;align-items:center;gap:8px;margin-top:8px}
 
         /* === BUTTONS === */
-        .btn { padding: 9px 18px; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--font-mono); transition: all .15s; letter-spacing: .04em; }
-        .btn-primary { background: var(--accent-green-bg); color: var(--accent-green-light); border: 1px solid var(--accent-green-border); }
-        .btn-primary:hover { background: #143e28; }
-        .btn-primary:disabled { background: #0e1a16; color: #2a3a2a; border-color: #1a2a1a; cursor: default; }
-        .btn-secondary { background: #101820; color: var(--text-muted); border: 1px solid var(--border); }
-        .btn-danger { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
-        .btn-cyan { background: var(--accent-cyan-bg); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); }
-        .btn-cyan:hover { background: #0e3838; }
+        .btn{padding:10px 20px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-sans);transition:all .15s;letter-spacing:.03em;border:none;display:inline-flex;align-items:center;gap:8px}
+        .btn-primary{background:var(--navy-700);color:var(--white)}
+        .btn-primary:hover{background:var(--navy-600)}
+        .btn-primary:disabled{background:var(--gray-300);color:var(--gray-500);cursor:default}
+        .btn-gold{background:linear-gradient(135deg,var(--gold-500),var(--gold-400));color:var(--navy-900);font-weight:800}
+        .btn-gold:hover{background:linear-gradient(135deg,var(--gold-400),var(--gold-300))}
+        .btn-secondary{background:var(--white);color:var(--gray-700);border:1px solid var(--gray-300)}
+        .btn-secondary:hover{background:var(--gray-50);border-color:var(--gray-400)}
+        .btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
 
         /* === MODAL === */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .modal-overlay.open { display: flex; }
-        .modal { width: 520px; max-height: 80vh; background: #0c1620; border-radius: 10px; border: 1px solid var(--border-active); box-shadow: 0 24px 80px rgba(0,0,0,.6); overflow: hidden; animation: slideUp .2s ease; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); }
-        .modal-title { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); }
-        .modal-close { background: none; border: none; color: #4a5a6a; font-size: 20px; cursor: pointer; }
-        .modal-body { padding: 18px; }
-        .recipient-grid { display: flex; gap: 7px; flex-wrap: wrap; }
-        .recipient-btn { padding: 7px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--font-mono); background: var(--bg-input); color: #4a5a6a; border: 1px solid var(--border); transition: all .15s; }
-        .recipient-btn.selected { background: var(--accent-blue-bg); color: var(--accent-blue-light); border-color: var(--accent-blue-border); }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
-        .confirm-view { padding: 28px; text-align: center; }
-        .confirm-icon { font-size: 28px; margin-bottom: 12px; }
-        .confirm-title { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); margin-bottom: 6px; }
-        .confirm-meta { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 20px; }
-        .confirm-actions { display: flex; justify-content: center; gap: 12px; }
-        .form-label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: .1em; display: block; margin-bottom: 6px; text-transform: uppercase; }
-        .form-group { margin-bottom: 14px; }
-        .form-input { width: 100%; padding: 9px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-input); color: #b8d0e0; font-size: 12.5px; font-family: var(--font-mono); outline: none; }
-        .form-input:focus { border-color: var(--accent-blue); }
-        .form-textarea { width: 100%; padding: 10px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-input); color: #b8d0e0; font-size: 12.5px; line-height: 1.6; font-family: var(--font-body); outline: none; resize: vertical; min-height: 110px; }
-        .form-textarea:focus { border-color: var(--accent-blue); }
+        .modal-overlay{position:fixed;inset:0;background:rgba(10,22,40,.6);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+        .modal-overlay.open{display:flex}
+        .modal{width:560px;max-height:80vh;background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden;animation:slideUp .2s ease}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--gray-200);background:var(--gray-50)}
+        .modal-title{font-size:15px;font-weight:800;color:var(--navy-800)}
+        .modal-close{background:none;border:none;color:var(--gray-400);font-size:22px;cursor:pointer;width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;transition:all .15s}
+        .modal-close:hover{background:var(--gray-100);color:var(--gray-600)}
+        .modal-body{padding:24px;overflow-y:auto;max-height:60vh}
+        .form-group{margin-bottom:16px}
+        .form-label{font-size:11px;color:var(--gray-500);font-weight:700;letter-spacing:.08em;display:block;margin-bottom:6px;text-transform:uppercase}
+        .form-input{width:100%;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white);color:var(--gray-800);font-size:13px;outline:none;transition:border-color .2s}
+        .form-input:focus{border-color:var(--gold-400);box-shadow:0 0 0 3px rgba(201,151,42,.1)}
+        .form-textarea{width:100%;padding:12px 14px;border-radius:var(--radius);border:1px solid var(--gray-200);background:var(--white);color:var(--gray-800);font-size:13px;line-height:1.6;outline:none;resize:vertical;min-height:120px;transition:border-color .2s}
+        .form-textarea:focus{border-color:var(--gold-400);box-shadow:0 0 0 3px rgba(201,151,42,.1)}
+        .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200)}
+        .recipient-grid{display:flex;gap:8px;flex-wrap:wrap}
+        .recipient-btn{padding:8px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;background:var(--gray-50);color:var(--gray-500);border:1px solid var(--gray-200);transition:all .15s}
+        .recipient-btn.selected{background:var(--navy-700);color:var(--white);border-color:var(--navy-700)}
+        .recipient-btn:hover:not(.selected){background:var(--gray-100);border-color:var(--gray-300)}
+        .confirm-view{padding:32px;text-align:center}
+        .confirm-icon{font-size:36px;margin-bottom:14px}
+        .confirm-title{font-size:16px;font-weight:800;color:var(--navy-800);margin-bottom:6px}
+        .confirm-meta{font-size:13px;color:var(--gray-500);margin-bottom:24px;line-height:1.6}
+        .confirm-actions{display:flex;justify-content:center;gap:14px}
+
+        /* === FOOTER === */
+        .footer{padding:10px 28px;border-top:1px solid var(--gray-200);background:var(--white);display:flex;justify-content:space-between;align-items:center}
+        .footer-text{font-size:10px;color:var(--gray-400);letter-spacing:.04em}
+        .footer-brand{font-size:10px;color:var(--gold-500);font-weight:700;letter-spacing:.06em}
 
         /* === TOAST === */
-        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 2000; padding: 12px 20px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,.4); animation: toastIn .3s ease; display: none; }
-        .toast.show { display: block; }
-        .toast.success { background: var(--accent-green-bg); color: var(--accent-green-light); border: 1px solid var(--accent-green-border); }
-        .toast.error { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
-        .toast.info { background: var(--accent-cyan-bg); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); }
+        .toast{position:fixed;bottom:24px;right:24px;z-index:2000;padding:14px 24px;border-radius:var(--radius);font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);display:none;max-width:400px}
+        .toast.show{display:block;animation:slideUp .3s ease}
+        .toast.success{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+        .toast.error{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+        .toast.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
 
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .ref-grid { flex-wrap: wrap; }
-            .ref-card { min-width: 45%; }
-            .letter-grid { grid-template-columns: 1fr; }
-            .tab-btn { padding: 9px 10px; font-size: 9.5px; }
-            .tab-btn .tab-icon { display: none; }
-            .kb-stats { flex-wrap: wrap; }
-            .kb-stat { min-width: 45%; }
+        /* === EMPTY STATE === */
+        .empty-state{text-align:center;padding:40px 20px;color:var(--gray-400)}
+        .empty-state .icon{font-size:40px;margin-bottom:12px;opacity:.5}
+        .empty-state .msg{font-size:13px;color:var(--gray-500)}
+
+        @media(max-width:768px){
+            .sidebar{display:none}
+            .letter-grid{grid-template-columns:1fr}
+            .gov-grid{grid-template-columns:1fr}
+            .stats-grid{grid-template-columns:repeat(2,1fr)}
+            .tab-btn{padding:10px 12px;font-size:11px}
+            .tab-btn .tab-icon{display:none}
+            .main-content{padding:16px}
         }
     </style>
 </head>
@@ -241,145 +297,226 @@
             <div class="logo">PRL</div>
             <div>
                 <div class="header-title">POLICY REASONING LAYER</div>
-                <div class="header-sub">DECISION INTELLIGENCE ENGINE v2.0</div>
+                <div class="header-sub">DECISION INTELLIGENCE ENGINE v3.0</div>
             </div>
         </div>
         <div class="header-right">
             <div class="status-pill">
                 <span class="status-dot"></span>
-                <span class="status-txt">ENGINE ONLINE</span>
+                <span class="status-txt">ONLINE</span>
             </div>
-            <span class="clock" id="clock"></span>
+            <span class="header-clock" id="clock"></span>
         </div>
     </div>
 
     <!-- TABS -->
     <div class="tab-bar">
-        <button class="tab-btn active" data-tab="schedule"><span class="tab-icon">📅</span> SCHEDULE</button>
-        <button class="tab-btn" data-tab="email"><span class="tab-icon">✉️</span> EMAIL</button>
-        <button class="tab-btn" data-tab="letters"><span class="tab-icon">📄</span> LETTERS</button>
+        <button class="tab-btn active" data-tab="dashboard"><span class="tab-icon">📊</span> DASHBOARD</button>
         <button class="tab-btn" data-tab="ask"><span class="tab-icon">🧠</span> ASK PRL</button>
         <button class="tab-btn" data-tab="kb"><span class="tab-icon">📚</span> KNOWLEDGE BASE <span class="tab-badge" id="kb-badge">0</span></button>
+        <button class="tab-btn" data-tab="schedule"><span class="tab-icon">📅</span> SCHEDULE</button>
+        <button class="tab-btn" data-tab="email"><span class="tab-icon">✉️</span> EMAIL <span class="tab-badge alert" id="email-badge" style="display:none">0</span></button>
+        <button class="tab-btn" data-tab="letters"><span class="tab-icon">📄</span> LETTERS</button>
         <button class="tab-btn" data-tab="governance"><span class="tab-icon">🛡️</span> GOVERNANCE</button>
+        <button class="tab-btn" data-tab="decisions"><span class="tab-icon">📋</span> AUDIT TRAIL</button>
     </div>
 
     <!-- MAIN -->
     <div class="main-layout">
         <div class="main-content">
 
-            <!-- SCHEDULE -->
-            <div class="tab-panel active" id="panel-schedule">
-                <div class="section-header"><h2 class="section-title">UPCOMING EVENTS</h2><span class="section-meta" id="schedule-count"></span></div>
-                <div id="schedule-list"></div>
+            <!-- DASHBOARD -->
+            <div class="tab-panel active" id="panel-dashboard">
+                <div class="section-header"><h2 class="section-title">Command Dashboard</h2><span class="section-meta" id="dash-date"></span></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Real-time operational overview of your PRL Engine. Monitor policy knowledge base status, decision volume,
+                    approval rates, and upcoming events at a glance. Use the quick start cards below to jump to any function.
+                </p>
+                <div class="stats-grid" id="dash-stats"></div>
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Quick Start</span><span class="card-meta">Jump to any PRL function</span></div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+                        <div class="data-row" onclick="switchTab('ask')" style="border-color:var(--gold-200);background:var(--gold-50)">
+                            <div class="row-left"><span style="font-size:24px">🧠</span><div><div class="row-title" style="color:var(--gold-600)">Ask PRL</div><div class="row-sub">Submit a policy question — PRL retrieves, reasons, and responds with cited guidance</div></div></div>
+                        </div>
+                        <div class="data-row" onclick="switchTab('kb')">
+                            <div class="row-left"><span style="font-size:24px">📚</span><div><div class="row-title">Knowledge Base</div><div class="row-sub">Upload and manage policy documents (CBA, HRPM, FAA Orders, memos, guides)</div></div></div>
+                        </div>
+                        <div class="data-row" onclick="switchTab('schedule')">
+                            <div class="row-left"><span style="font-size:24px">📅</span><div><div class="row-title">Schedule</div><div class="row-sub">Track operational events, reviews, briefings, and collaboration meetings</div></div></div>
+                        </div>
+                        <div class="data-row" onclick="openCompose()">
+                            <div class="row-left"><span style="font-size:24px">✉️</span><div><div class="row-title">Compose Email</div><div class="row-sub">Send governance-ready communications to ETR, HR, leadership, or union reps</div></div></div>
+                        </div>
+                        <div class="data-row" onclick="switchTab('letters')">
+                            <div class="row-left"><span style="font-size:24px">📄</span><div><div class="row-title">Letter Templates</div><div class="row-sub">Access pre-formatted templates for disciplinary, administrative, and recognition letters</div></div></div>
+                        </div>
+                        <div class="data-row" onclick="switchTab('decisions')">
+                            <div class="row-left"><span style="font-size:24px">📋</span><div><div class="row-title">Audit Trail</div><div class="row-sub">Review past decisions, provide feedback, and build institutional memory</div></div></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- EMAIL -->
-            <div class="tab-panel" id="panel-email">
-                <div class="section-header"><h2 class="section-title">INBOX</h2><button class="compose-btn" onclick="openCompose()">+ COMPOSE</button></div>
-                <div id="email-list"></div>
-            </div>
-
-            <!-- LETTERS -->
-            <div class="tab-panel" id="panel-letters">
-                <div class="section-header"><h2 class="section-title">LETTER TEMPLATES</h2></div>
-                <div class="letter-grid" id="letter-list"></div>
-            </div>
-
-            <!-- ASK PRL (RAG-Powered) -->
+            <!-- ASK PRL -->
             <div class="tab-panel" id="panel-ask">
-                <div class="section-header"><h2 class="section-title">ASK THE PRL ENGINE</h2><span class="section-meta" id="ask-doc-count"></span></div>
+                <div class="section-header"><h2 class="section-title">Ask the PRL Engine</h2><span class="section-meta" id="ask-doc-count"></span></div>
                 <div class="ask-container">
                     <div class="ask-messages" id="ask-messages">
-                        <div class="ask-msg system">PRL Decision Engine ready. Submit a policy question — I will retrieve relevant documents, reason across your knowledge base, and return a cited, structured answer.<br><br>Example: "Can a technician take LWOP after sick leave exhaustion under Article 33?"</div>
+                        <div class="ask-msg system">
+                            <strong>PRL Decision Engine v3.0</strong> — Five-Layer Policy Reasoning Architecture<br><br>
+                            Submit a policy question. PRL will retrieve relevant documents from your knowledge base, reason across multiple policy frameworks using chain-of-thought logic, and return a cited, structured, governance-ready answer.<br><br>
+                            <em>Example: "Can a technician take LWOP after sick leave exhaustion under Article 33?"</em>
+                        </div>
                     </div>
                     <div class="ask-input-row">
-                        <input class="ask-input" id="ask-input" placeholder="Ask a policy question..." onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendQuestion()">
-                        <button class="btn btn-primary" id="ask-send-btn" onclick="sendQuestion()">SEND</button>
+                        <input class="ask-input" id="ask-input" placeholder="Ask a policy question..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQuestion()}">
+                        <button class="btn btn-gold" id="ask-send-btn" onclick="sendQuestion()">ASK PRL</button>
                     </div>
                 </div>
             </div>
 
             <!-- KNOWLEDGE BASE -->
             <div class="tab-panel" id="panel-kb">
-                <div class="section-header"><h2 class="section-title">KNOWLEDGE BASE</h2></div>
-                <div class="kb-stats" id="kb-stats"></div>
-
+                <div class="section-header"><h2 class="section-title">Knowledge Base</h2><span class="section-meta">Policy Document Repository</span></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    The Knowledge Base is the foundation of PRL's reasoning power. Upload your policy documents here — CBA articles,
+                    HRPM sections, FAA Orders, management guides, leadership memoranda, local procedures, and technical bulletins.
+                    PRL will chunk, index, and store them for instant semantic retrieval when you ask a policy question.
+                    The more comprehensive your knowledge base, the more accurate and defensible PRL's guidance becomes.
+                </p>
+                <div class="stats-grid" id="kb-stats"></div>
                 <div class="kb-upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
                     <div class="icon">📂</div>
                     <div class="label">Upload Policy Documents</div>
-                    <div class="hint">PDF · DOCX · TXT — Drag and drop or click to browse</div>
+                    <div class="hint">PDF, DOCX, TXT — Drag and drop or click to browse. Recommended: CBA, HRPM LWS-8.14, FAA Orders, management guides</div>
                     <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.md" style="display:none" onchange="handleFileSelect(this)">
                 </div>
-
                 <div class="upload-form" id="upload-form">
-                    <div class="form-row">
-                        <label>FILE</label>
-                        <span id="upload-filename" style="font-size:12px;color:var(--accent-cyan);font-family:var(--font-mono)"></span>
-                    </div>
-                    <div class="form-row">
-                        <label>NAME</label>
-                        <input class="form-text" id="upload-name" placeholder="Document display name">
-                    </div>
-                    <div class="form-row">
-                        <label>CATEGORY</label>
-                        <select class="form-select" id="upload-category"></select>
-                    </div>
-                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-                        <button class="btn btn-secondary" onclick="cancelUpload()">CANCEL</button>
-                        <button class="btn btn-cyan" onclick="submitUpload()">INGEST DOCUMENT</button>
+                    <div class="form-row"><label>FILE</label><span id="upload-filename" style="font-size:13px;color:var(--gold-600);font-weight:600"></span></div>
+                    <div class="form-row"><label>NAME</label><input class="form-text" id="upload-name" placeholder="Document display name"></div>
+                    <div class="form-row"><label>CATEGORY</label><select class="form-select" id="upload-category"></select></div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+                        <button class="btn btn-secondary" onclick="cancelUpload()">Cancel</button>
+                        <button class="btn btn-gold" onclick="submitUpload()">Ingest Document</button>
                     </div>
                     <div class="progress-bar" id="upload-progress"><div class="progress-fill" id="upload-progress-fill"></div></div>
                 </div>
-
-                <div style="margin-top:4px">
-                    <div class="sidebar-label" style="margin-bottom:10px">INGESTED DOCUMENTS</div>
+                <div style="margin-top:8px">
+                    <div style="font-size:11px;color:var(--gray-500);font-weight:700;letter-spacing:.1em;margin-bottom:12px;text-transform:uppercase">Ingested Documents</div>
                     <div class="kb-doc-list" id="kb-doc-list">
-                        <div style="text-align:center;padding:24px;color:var(--text-dim);font-family:var(--font-mono);font-size:11px;">No documents ingested yet.</div>
+                        <div class="empty-state"><div class="icon">📄</div><div class="msg">No documents ingested yet. Upload policy documents above.</div></div>
                     </div>
                 </div>
             </div>
 
+            <!-- SCHEDULE -->
+            <div class="tab-panel" id="panel-schedule">
+                <div class="section-header"><h2 class="section-title">Operational Schedule</h2><div style="display:flex;gap:10px;align-items:center"><span class="section-meta" id="schedule-count"></span><button class="btn btn-primary" onclick="openAddEvent()">+ Add Event</button></div></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Track upcoming operational events, equipment reviews, stakeholder briefings, union collaboration meetings,
+                    and maintenance windows. Events are sorted by date and color-coded by priority. Use this to maintain
+                    situational awareness of deadlines that may trigger policy actions (e.g., CBA notification timelines,
+                    leave restriction periods, or budget submission dates).
+                </p>
+                <div id="schedule-list"></div>
+            </div>
+
+            <!-- EMAIL -->
+            <div class="tab-panel" id="panel-email">
+                <div class="section-header"><h2 class="section-title">Communications</h2><button class="btn btn-gold" onclick="openCompose()">+ Compose</button></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Manage operational communications with built-in routing to key stakeholders: ETR Division, HR, Supervisors,
+                    AIT Leadership, PASS Union Representatives, and FAA Legal. Use the Compose function to draft governance-ready
+                    emails — PRL can help generate policy-compliant language for notifications, solicitations, and formal correspondence.
+                    Unread messages are highlighted with a gold indicator.
+                </p>
+                <div id="email-list"></div>
+            </div>
+
+            <!-- LETTERS -->
+            <div class="tab-panel" id="panel-letters">
+                <div class="section-header"><h2 class="section-title">Letter Templates</h2><span class="section-meta">Governance-Ready Correspondence</span></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Pre-formatted letter templates for common management actions across disciplinary, administrative, scheduling,
+                    labor relations, recognition, and reporting categories. Each template includes the proper structure, required
+                    elements, and policy references. Templates are designed to be HR-approvable and legally defensible — built
+                    from real operational use inside FAA Technical Operations with 100% HR approval rate.
+                </p>
+                <div class="letter-grid" id="letter-list"></div>
+            </div>
+
             <!-- GOVERNANCE -->
             <div class="tab-panel" id="panel-governance">
-                <div class="section-header"><h2 class="section-title">GOVERNANCE CONTROLS</h2></div>
-                <div id="governance-list"></div>
+                <div class="section-header"><h2 class="section-title">Governance Controls</h2><span class="section-meta">Regulatory & Compliance Framework</span></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Track the regulatory, compliance, and policy frameworks that govern PRL's operation and the decisions it supports.
+                    This includes federal mandates (OMB, FISMA, Executive Orders), agency-specific policies (FAA Orders, DOT directives),
+                    labor relations agreements (PASS CBA), HR policy (HRPM), and security authorizations (FedRAMP). Each item shows
+                    its current status and applicability to your operational environment.
+                </p>
+                <div class="gov-grid" id="governance-list"></div>
+            </div>
+
+            <!-- AUDIT TRAIL -->
+            <div class="tab-panel" id="panel-decisions">
+                <div class="section-header"><h2 class="section-title">Decision Audit Trail</h2><span class="section-meta">Institutional Memory & Feedback Loop</span></div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Every question asked through PRL is logged here with its full response, sources used, and reasoning chain.
+                    This is PRL's institutional memory — the feedback loop that captures not just what policy says, but how it was
+                    applied in practice. Approve decisions that were accurate, flag those that need review, or reject incorrect guidance.
+                    Over time, this audit trail documents your organization's decision patterns, builds defensible records, and
+                    improves PRL's understanding of how policy is actually practiced in your environment.
+                </p>
+                <div id="decisions-list"></div>
             </div>
         </div>
 
         <!-- SIDEBAR -->
         <div class="sidebar">
-            <div class="sidebar-label">QUICK ACTIONS</div>
-            <button class="sb primary" onclick="openCompose()">✉️ CREATE EMAIL</button>
-            <button class="sb" onclick="switchTab('ask')">🧠 ASK PRL</button>
-            <button class="sb kb" onclick="switchTab('kb')">📚 KNOWLEDGE BASE</button>
-            <button class="sb" onclick="switchTab('governance')">🛡️ GOVERNANCE</button>
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-label">EMAIL TO</div>
-            <button class="sb" onclick="openCompose()">→ ETR</button>
-            <button class="sb" onclick="openCompose()">→ HR</button>
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-label">ENGINE STATUS</div>
-            <div style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono);padding:4px 0;">
-                <div id="sidebar-docs" style="margin-bottom:4px">Docs: loading...</div>
-                <div id="sidebar-api" style="margin-bottom:4px">API: checking...</div>
+            <div class="sb-section">
+                <div class="sb-label">Quick Actions</div>
+                <p style="font-size:10px;color:var(--gray-400);margin-bottom:8px;line-height:1.4">Jump to core PRL functions</p>
+                <button class="sb-btn gold" onclick="switchTab('ask')">🧠 Ask PRL</button>
+                <button class="sb-btn primary" onclick="openCompose()">✉️ Compose Email</button>
+                <button class="sb-btn" onclick="switchTab('kb')">📚 Knowledge Base</button>
+                <button class="sb-btn" onclick="switchTab('decisions')">📋 Audit Trail</button>
             </div>
-        </div>
-    </div>
-
-    <!-- REFERENCE PANEL -->
-    <div class="ref-panel">
-        <div class="ref-label">REFERENCE DOCUMENTS</div>
-        <div class="ref-grid">
-            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📘</span><div><div class="ref-title">CBA / Bargaining</div><div class="ref-desc">Upload to knowledge base</div></div></div>
-            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📗</span><div><div class="ref-title">HRPM</div><div class="ref-desc">Upload to knowledge base</div></div></div>
-            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📙</span><div><div class="ref-title">Management Guides</div><div class="ref-desc">Upload to knowledge base</div></div></div>
-            <div class="ref-card" onclick="switchTab('kb')"><span class="ref-icon">📋</span><div><div class="ref-title">Memos</div><div class="ref-desc">Upload to knowledge base</div></div></div>
+            <div class="sb-divider"></div>
+            <div class="sb-section">
+                <div class="sb-label">Quick Email</div>
+                <p style="font-size:10px;color:var(--gray-400);margin-bottom:8px;line-height:1.4">Send to key stakeholders</p>
+                <button class="sb-btn" onclick="openCompose()">→ ETR Division</button>
+                <button class="sb-btn" onclick="openCompose()">→ HR</button>
+                <button class="sb-btn" onclick="openCompose()">→ Union Rep</button>
+            </div>
+            <div class="sb-divider"></div>
+            <div class="sb-section">
+                <div class="sb-label">Engine Status</div>
+                <p style="font-size:10px;color:var(--gray-400);margin-bottom:8px;line-height:1.4">Real-time PRL health metrics</p>
+                <div class="sb-stat">
+                    <div class="sb-stat-row"><span class="sb-stat-label">Documents ingested</span><span class="sb-stat-value" id="sb-docs">-</span></div>
+                    <div class="sb-stat-row"><span class="sb-stat-label">Policy chunks indexed</span><span class="sb-stat-value" id="sb-chunks">-</span></div>
+                    <div class="sb-stat-row"><span class="sb-stat-label">Decisions recorded</span><span class="sb-stat-value" id="sb-decisions">-</span></div>
+                    <div class="sb-stat-row"><span class="sb-stat-label">Claude API status</span><span class="sb-stat-value" id="sb-api" style="color:var(--gray-400)">...</span></div>
+                </div>
+            </div>
+            <div class="sb-divider"></div>
+            <div class="sb-section">
+                <div class="sb-label">Recommended Uploads</div>
+                <p style="font-size:10px;color:var(--gray-400);margin-bottom:8px;line-height:1.4">Priority documents for Day 1 knowledge base</p>
+                <button class="sb-btn" onclick="switchTab('kb')">📘 CBA / Bargaining</button>
+                <button class="sb-btn" onclick="switchTab('kb')">📗 HRPM LWS-8.14</button>
+                <button class="sb-btn" onclick="switchTab('kb')">📙 Management Guides</button>
+                <button class="sb-btn" onclick="switchTab('kb')">📋 FAA Orders</button>
+            </div>
         </div>
     </div>
 
     <!-- FOOTER -->
     <div class="footer">
-        <span class="footer-text">PRL ENGINE v2.0 — DECISION INTELLIGENCE — POLICY REASONING LAYER</span>
+        <span class="footer-text">PRL ENGINE v3.0 — Five-Layer Policy Reasoning Architecture</span>
+        <span class="footer-brand">CJD GLOBAL DEFENSE CONTRACTING LLC</span>
         <span class="footer-text">"We will not wait for failure to teach us."</span>
     </div>
 
@@ -387,21 +524,35 @@
     <div class="modal-overlay" id="compose-modal">
         <div class="modal">
             <div id="compose-form-view">
-                <div class="modal-header"><span class="modal-title">COMPOSE EMAIL</span><button class="modal-close" onclick="closeCompose()">×</button></div>
+                <div class="modal-header"><span class="modal-title">Compose Email</span><button class="modal-close" onclick="closeCompose()">&times;</button></div>
                 <div class="modal-body">
-                    <div class="form-group"><label class="form-label">TO:</label><div class="recipient-grid" id="recipient-grid"></div></div>
-                    <div class="form-group"><label class="form-label">SUBJECT:</label><input class="form-input" id="compose-subject" placeholder="Enter subject..."></div>
-                    <div class="form-group"><label class="form-label">BODY:</label><textarea class="form-textarea" id="compose-body" placeholder="Compose message..."></textarea></div>
-                    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeCompose()">BACK</button><button class="btn btn-primary" id="send-btn" onclick="showConfirm()" disabled>SEND</button></div>
+                    <div class="form-group"><label class="form-label">To:</label><div class="recipient-grid" id="recipient-grid"></div></div>
+                    <div class="form-group"><label class="form-label">Subject:</label><input class="form-input" id="compose-subject" placeholder="Enter subject..."></div>
+                    <div class="form-group"><label class="form-label">Body:</label><textarea class="form-textarea" id="compose-body" placeholder="Compose message..."></textarea></div>
+                    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeCompose()">Cancel</button><button class="btn btn-gold" id="send-btn" onclick="showConfirm()" disabled>Send</button></div>
                 </div>
             </div>
             <div id="compose-confirm-view" style="display:none">
                 <div class="confirm-view">
                     <div class="confirm-icon">✉️</div>
-                    <div class="confirm-title">CONFIRM SEND?</div>
+                    <div class="confirm-title">Confirm Send?</div>
                     <div class="confirm-meta" id="confirm-meta"></div>
-                    <div class="confirm-actions"><button class="btn btn-danger" onclick="hideConfirm()">NO</button><button class="btn btn-primary" onclick="confirmSend()">YES</button></div>
+                    <div class="confirm-actions"><button class="btn btn-secondary" onclick="hideConfirm()">Cancel</button><button class="btn btn-gold" onclick="confirmSend()">Send Now</button></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD EVENT MODAL -->
+    <div class="modal-overlay" id="event-modal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">Add Schedule Event</span><button class="modal-close" onclick="closeEventModal()">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">Title:</label><input class="form-input" id="event-title" placeholder="Event title..."></div>
+                <div class="form-group"><label class="form-label">Date:</label><input class="form-input" id="event-date" type="date"></div>
+                <div class="form-group"><label class="form-label">Priority:</label><select class="form-input" id="event-priority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
+                <div class="form-group"><label class="form-label">Description:</label><textarea class="form-textarea" id="event-desc" placeholder="Optional description..." style="min-height:80px"></textarea></div>
+                <div class="modal-actions"><button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button><button class="btn btn-gold" onclick="saveEvent()">Save Event</button></div>
             </div>
         </div>
     </div>
@@ -415,200 +566,344 @@ let selectedRecipients = new Set();
 let pendingFile = null;
 
 // === CLOCK ===
-function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false }); }
-setInterval(updateClock, 1000); updateClock();
+function updateClock(){
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-US',{hour12:false});
+    document.getElementById('dash-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+setInterval(updateClock,1000);updateClock();
 
 // === TABS ===
-function switchTab(id) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
-    if (id === 'kb') loadDocuments();
+function switchTab(id){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+    if(id==='kb')loadDocuments();
+    if(id==='decisions')loadDecisions();
+    if(id==='dashboard')loadDashboard();
 }
-document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
 // === TOAST ===
-function showToast(msg, type='success') {
-    const t = document.getElementById('toast');
-    t.textContent = (type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : 'ℹ ') + msg;
-    t.className = 'toast show ' + type;
-    setTimeout(() => t.classList.remove('show'), 3500);
+function showToast(msg,type='success'){
+    const t=document.getElementById('toast');
+    t.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'ℹ ')+msg;
+    t.className='toast show '+type;
+    setTimeout(()=>t.classList.remove('show'),4000);
 }
 
-// === LOAD DATA ===
-async function loadSchedule() {
-    const r = await fetch('/api/schedule'); const d = await r.json();
-    document.getElementById('schedule-count').textContent = d.length + ' scheduled';
-    document.getElementById('schedule-list').innerHTML = d.map(i => `<div class="data-row"><div style="display:flex;align-items:center;gap:14px"><span class="date-label">${i.date}</span><span class="row-title">${i.title}</span></div><span class="badge badge-${i.priority}">${i.priority}</span></div>`).join('');
+// === LOAD DASHBOARD ===
+async function loadDashboard(){
+    try{
+        const r=await fetch('/api/stats');const d=await r.json();
+        document.getElementById('dash-stats').innerHTML=`
+            <div class="stat-card navy"><div class="stat-value">${d.documents_ingested}</div><div class="stat-label">Documents</div></div>
+            <div class="stat-card"><div class="stat-value">${d.total_chunks}</div><div class="stat-label">Policy Chunks</div></div>
+            <div class="stat-card gold"><div class="stat-value">${d.total_decisions}</div><div class="stat-label">Decisions</div></div>
+            <div class="stat-card"><div class="stat-value">${d.approval_rate}%</div><div class="stat-label">Approval Rate</div></div>
+            <div class="stat-card"><div class="stat-value">${d.upcoming_events}</div><div class="stat-label">Upcoming Events</div></div>
+            <div class="stat-card"><div class="stat-value">${d.unread_emails}</div><div class="stat-label">Unread Emails</div></div>
+        `;
+        // Update sidebar
+        document.getElementById('sb-docs').textContent=d.documents_ingested;
+        document.getElementById('sb-chunks').textContent=d.total_chunks;
+        document.getElementById('sb-decisions').textContent=d.total_decisions;
+    }catch(e){console.error('Dashboard load failed:',e)}
 }
-async function loadEmails() {
-    const r = await fetch('/api/emails'); const d = await r.json();
-    document.getElementById('email-list').innerHTML = d.map(e => `<div class="email-row ${e.read?'read':'unread'}">${e.read?'<span style="width:7px"></span>':'<span class="unread-dot"></span>'}<span class="email-from">${e.from}</span><span class="email-subj ${e.read?'read':'unread'}">${e.subject}</span><span class="email-time">${e.time}</span></div>`).join('');
+
+// === SCHEDULE ===
+async function loadSchedule(){
+    const r=await fetch('/api/schedule');const d=await r.json();
+    document.getElementById('schedule-count').textContent=d.length+' events';
+    if(d.length===0){
+        document.getElementById('schedule-list').innerHTML='<div class="empty-state"><div class="icon">📅</div><div class="msg">No scheduled events.</div></div>';
+        return;
+    }
+    document.getElementById('schedule-list').innerHTML=d.map(i=>`
+        <div class="data-row" style="align-items:flex-start;padding:16px">
+            <div class="row-left" style="align-items:flex-start">
+                <span class="date-label" style="padding-top:2px">${i.date}</span>
+                <div>
+                    <div class="row-title">${i.title}</div>
+                    ${i.description?`<div style="font-size:12px;color:var(--gray-500);margin-top:6px;line-height:1.5;max-width:600px">${i.description}</div>`:''}
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;padding-top:2px">
+                <span class="badge badge-${i.priority}">${i.priority}</span>
+                <button class="btn btn-danger" style="padding:4px 10px;font-size:10px" onclick="deleteEvent(${i.id})">✕</button>
+            </div>
+        </div>
+    `).join('');
 }
-async function loadLetters() {
-    const r = await fetch('/api/letters'); const d = await r.json();
-    document.getElementById('letter-list').innerHTML = d.map(t => `<div class="letter-card"><div style="font-size:13px;color:var(--text-secondary);font-weight:600;margin-bottom:5px">${t.title}</div><span class="row-sub">${t.type}</span></div>`).join('');
+
+function openAddEvent(){document.getElementById('event-modal').classList.add('open')}
+function closeEventModal(){document.getElementById('event-modal').classList.remove('open')}
+async function saveEvent(){
+    const data={
+        title:document.getElementById('event-title').value,
+        date:document.getElementById('event-date').value,
+        priority:document.getElementById('event-priority').value,
+        description:document.getElementById('event-desc').value
+    };
+    if(!data.title||!data.date){showToast('Title and date are required','error');return}
+    await fetch('/api/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    closeEventModal();showToast('Event created');loadSchedule();loadDashboard();
 }
-async function loadGovernance() {
-    const r = await fetch('/api/governance'); const d = await r.json();
-    const bm = {'Active':'active','Under Review':'review','Reference':'reference'};
-    document.getElementById('governance-list').innerHTML = d.map(i => `<div class="data-row"><div><div class="row-title">${i.title}</div><div class="row-sub">${i.category}</div></div><span class="badge badge-${bm[i.status]||'active'}">${i.status}</span></div>`).join('');
+async function deleteEvent(id){
+    if(!confirm('Delete this event?'))return;
+    await fetch('/api/schedule/'+id,{method:'DELETE'});
+    showToast('Event removed','info');loadSchedule();loadDashboard();
 }
-async function loadCategories() {
-    const r = await fetch('/api/categories'); const cats = await r.json();
-    document.getElementById('upload-category').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+// === EMAILS ===
+async function loadEmails(){
+    const r=await fetch('/api/emails');const d=await r.json();
+    const unread=d.filter(e=>!e.read).length;
+    const badge=document.getElementById('email-badge');
+    if(unread>0){badge.textContent=unread;badge.style.display='inline'}else{badge.style.display='none'}
+    if(d.length===0){
+        document.getElementById('email-list').innerHTML='<div class="empty-state"><div class="icon">✉️</div><div class="msg">No emails.</div></div>';
+        return;
+    }
+    document.getElementById('email-list').innerHTML=d.map(e=>`
+        <div class="email-row ${e.read?'':'unread'}" onclick="markRead(${e.id})" style="align-items:flex-start;padding:16px">
+            ${e.read?'<span style="width:8px;padding-top:6px"></span>':'<span class="unread-dot" style="margin-top:6px"></span>'}
+            <span class="email-from" style="padding-top:2px">${e.sender}</span>
+            <div style="flex:1">
+                <div class="email-subj ${e.read?'':'unread'}">${e.subject}</div>
+                ${e.body?`<div style="font-size:12px;color:var(--gray-500);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${e.body}</div>`:''}
+            </div>
+            <span class="email-time" style="padding-top:2px;flex-shrink:0">${e.time_label}</span>
+        </div>
+    `).join('');
+}
+async function markRead(id){
+    await fetch('/api/emails/'+id+'/read',{method:'POST'});
+    loadEmails();loadDashboard();
+}
+
+// === LETTERS ===
+async function loadLetters(){
+    const r=await fetch('/api/letters');const d=await r.json();
+    document.getElementById('letter-list').innerHTML=d.map(t=>`
+        <div class="letter-card">
+            <div class="letter-title">${t.title}</div>
+            <div class="letter-type">${t.type}</div>
+            ${t.description?`<div class="letter-desc">${t.description}</div>`:''}
+        </div>
+    `).join('');
+}
+
+// === GOVERNANCE ===
+async function loadGovernance(){
+    const r=await fetch('/api/governance');const d=await r.json();
+    const bm={'Active':'active','Under Review':'review','In Progress':'in-progress','Reference':'reference'};
+    document.getElementById('governance-list').innerHTML=d.map(i=>`
+        <div class="gov-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:${i.description?'10px':'0'}">
+                <div><div class="gov-title">${i.title}</div><div class="gov-category">${i.category}</div></div>
+                <span class="badge badge-${bm[i.status]||'active'}" style="flex-shrink:0;margin-left:12px">${i.status}</span>
+            </div>
+            ${i.description?`<div class="gov-desc" style="font-size:12px;color:var(--gray-600);line-height:1.6">${i.description}</div>`:''}
+        </div>
+    `).join('');
 }
 
 // === KNOWLEDGE BASE ===
-async function loadDocuments() {
-    const r = await fetch('/api/documents'); const d = await r.json();
-    document.getElementById('kb-badge').textContent = d.documents.length;
-    document.getElementById('sidebar-docs').textContent = 'Docs: ' + d.documents.length + ' (' + d.total_chunks + ' chunks)';
-    document.getElementById('ask-doc-count').textContent = d.total_chunks + ' policy chunks indexed';
-
-    document.getElementById('kb-stats').innerHTML = `
-        <div class="kb-stat"><div class="kb-stat-value">${d.documents.length}</div><div class="kb-stat-label">Documents</div></div>
-        <div class="kb-stat"><div class="kb-stat-value">${d.total_chunks}</div><div class="kb-stat-label">Chunks Indexed</div></div>
+async function loadDocuments(){
+    const r=await fetch('/api/documents');const d=await r.json();
+    document.getElementById('kb-badge').textContent=d.documents.length;
+    document.getElementById('ask-doc-count').textContent=d.total_chunks+' policy chunks indexed';
+    document.getElementById('sb-docs').textContent=d.documents.length;
+    document.getElementById('sb-chunks').textContent=d.total_chunks;
+    document.getElementById('kb-stats').innerHTML=`
+        <div class="stat-card navy"><div class="stat-value">${d.documents.length}</div><div class="stat-label">Documents</div></div>
+        <div class="stat-card"><div class="stat-value">${d.total_chunks}</div><div class="stat-label">Chunks Indexed</div></div>
     `;
-
-    const list = document.getElementById('kb-doc-list');
-    if (d.documents.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-dim);font-family:var(--font-mono);font-size:11px;">No documents ingested yet. Upload policy documents above.</div>';
-    } else {
-        const catIcons = {'CBA / Bargaining':'📘','HRPM':'📗','Management Guide':'📙','Memo':'📋','FAA Order':'📁','Local Procedure':'📂','Other':'📄'};
-        list.innerHTML = d.documents.map(doc => `
+    const list=document.getElementById('kb-doc-list');
+    if(d.documents.length===0){
+        list.innerHTML='<div class="empty-state"><div class="icon">📄</div><div class="msg">No documents ingested yet. Upload policy documents above.</div></div>';
+    }else{
+        const ci={'CBA / Bargaining':'📘','HRPM':'📗','Management Guide':'📙','Memo':'📋','FAA Order':'📁','Local Procedure':'📂','Technical Bulletin':'📟','HR Guidance':'👤','Labor Relations':'🤝','Other':'📄'};
+        list.innerHTML=d.documents.map(doc=>`
             <div class="kb-doc-row">
                 <div class="kb-doc-info">
-                    <span class="kb-doc-icon">${catIcons[doc.category]||'📄'}</span>
+                    <span class="kb-doc-icon">${ci[doc.category]||'📄'}</span>
                     <div><div class="kb-doc-name">${doc.name}</div><div class="kb-doc-meta">${doc.category} · ${doc.chunks} chunks</div></div>
                 </div>
-                <button class="kb-doc-delete" onclick="deleteDoc('${doc.name.replace(/'/g,"\\'")}')">DELETE</button>
+                <button class="kb-doc-delete" onclick="deleteDoc('${doc.name.replace(/'/g,"\\'")}')">Remove</button>
             </div>
         `).join('');
     }
 }
-async function deleteDoc(name) {
-    if (!confirm('Remove "' + name + '" from knowledge base?')) return;
-    await fetch('/api/documents/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name}) });
-    showToast('Removed: ' + name, 'info');
-    loadDocuments();
+async function deleteDoc(name){
+    if(!confirm('Remove "'+name+'" from knowledge base?'))return;
+    await fetch('/api/documents/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    showToast('Removed: '+name,'info');loadDocuments();loadDashboard();
 }
 
 // === FILE UPLOAD ===
-const zone = document.getElementById('upload-zone');
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
-
-function handleFileSelect(input) { if(input.files.length) handleFile(input.files[0]); }
-function handleFile(file) {
-    pendingFile = file;
-    document.getElementById('upload-filename').textContent = file.name;
-    document.getElementById('upload-name').value = file.name.replace(/\.[^.]+$/, '');
+const zone=document.getElementById('upload-zone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files.length)prepareUpload(e.dataTransfer.files[0])});
+function handleFileSelect(input){if(input.files.length)prepareUpload(input.files[0])}
+function prepareUpload(file){
+    pendingFile=file;
+    document.getElementById('upload-filename').textContent=file.name;
+    document.getElementById('upload-name').value=file.name.replace(/\.[^.]+$/,'');
     document.getElementById('upload-form').classList.add('open');
 }
-function cancelUpload() { pendingFile = null; document.getElementById('upload-form').classList.remove('open'); document.getElementById('file-input').value = ''; }
-
-async function submitUpload() {
-    if (!pendingFile) return;
-    const bar = document.getElementById('upload-progress');
-    const fill = document.getElementById('upload-progress-fill');
-    bar.classList.add('active'); fill.style.width = '30%';
-
-    const fd = new FormData();
-    fd.append('file', pendingFile);
-    fd.append('name', document.getElementById('upload-name').value || pendingFile.name);
-    fd.append('category', document.getElementById('upload-category').value);
-
-    fill.style.width = '60%';
-    try {
-        const r = await fetch('/api/documents/upload', { method:'POST', body:fd });
-        const d = await r.json();
-        fill.style.width = '100%';
-        if (d.status === 'success') {
-            showToast(`Ingested "${d.document}" — ${d.chunks} chunks indexed`, 'success');
-        } else {
-            showToast(d.message || 'Upload failed', 'error');
+function cancelUpload(){pendingFile=null;document.getElementById('upload-form').classList.remove('open')}
+async function submitUpload(){
+    if(!pendingFile)return;
+    const form=new FormData();
+    form.append('file',pendingFile);
+    form.append('name',document.getElementById('upload-name').value||pendingFile.name);
+    form.append('category',document.getElementById('upload-category').value);
+    const bar=document.getElementById('upload-progress');
+    const fill=document.getElementById('upload-progress-fill');
+    bar.classList.add('active');fill.style.width='30%';
+    try{
+        fill.style.width='60%';
+        const r=await fetch('/api/documents/upload',{method:'POST',body:form});
+        const d=await r.json();
+        fill.style.width='100%';
+        if(d.status==='success'){
+            showToast(`Ingested: ${d.document} (${d.chunks} chunks)`);
+        }else{
+            showToast(d.message||'Upload failed','error');
         }
-    } catch(e) { showToast('Upload error: ' + e.message, 'error'); }
-
-    setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0%'; cancelUpload(); loadDocuments(); }, 800);
+    }catch(e){showToast('Upload failed: '+e.message,'error')}
+    setTimeout(()=>{bar.classList.remove('active');fill.style.width='0%';cancelUpload();loadDocuments();loadDashboard()},600);
+}
+async function loadCategories(){
+    const r=await fetch('/api/categories');const cats=await r.json();
+    document.getElementById('upload-category').innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
-// === ASK PRL (RAG) ===
-async function sendQuestion() {
-    const input = document.getElementById('ask-input');
-    const q = input.value.trim();
-    if (!q) return;
-    const container = document.getElementById('ask-messages');
-    const sendBtn = document.getElementById('ask-send-btn');
-
-    // Show user message
-    container.innerHTML += `<div class="ask-msg user">${escapeHtml(q)}</div>`;
-    input.value = '';
-    input.disabled = true;
-    sendBtn.disabled = true;
-
-    // Show thinking indicator
-    container.innerHTML += `<div class="thinking-indicator" id="thinking"><div class="spinner"></div>Reasoning across policy sources...</div>`;
-    container.scrollTop = container.scrollHeight;
-
-    try {
-        const r = await fetch('/api/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question:q}) });
-        const d = await r.json();
-
-        // Remove thinking indicator
-        const thinkEl = document.getElementById('thinking');
-        if (thinkEl) thinkEl.remove();
-
-        // Build answer with sources
-        let sourcesHtml = '';
-        if (d.sources && d.sources.length > 0) {
-            sourcesHtml = `<div class="sources-bar">${d.sources.map(s => `<span class="source-chip">📎 ${s.name}</span>`).join('')}</div>`;
+// === ASK PRL ===
+async function sendQuestion(){
+    const input=document.getElementById('ask-input');
+    const q=input.value.trim();if(!q)return;
+    const msgs=document.getElementById('ask-messages');
+    msgs.innerHTML+=`<div class="ask-msg user">${escHtml(q)}</div>`;
+    input.value='';input.focus();
+    const btn=document.getElementById('ask-send-btn');btn.disabled=true;
+    msgs.innerHTML+=`<div class="thinking-indicator" id="thinking"><div class="spinner"></div>PRL is reasoning across your policy documents...</div>`;
+    msgs.scrollTop=msgs.scrollHeight;
+    try{
+        const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+        const d=await r.json();
+        const el=document.getElementById('thinking');if(el)el.remove();
+        let html=`<div class="ask-msg assistant">${formatAnswer(d.answer)}`;
+        if(d.sources&&d.sources.length>0){
+            html+=`<div class="sources-bar">${d.sources.map(s=>`<span class="source-chip">${escHtml(s.name)}${s.page?' · '+s.page:''} (${Math.round(s.relevance*100)}%)</span>`).join('')}</div>`;
         }
-
-        container.innerHTML += `<div class="ask-msg assistant">${escapeHtml(d.answer)}${sourcesHtml}</div>`;
-    } catch(e) {
-        const thinkEl = document.getElementById('thinking');
-        if (thinkEl) thinkEl.remove();
-        container.innerHTML += `<div class="ask-msg assistant" style="border-color:var(--accent-red-border)">⚠️ Error: ${escapeHtml(e.message)}</div>`;
+        if(d.decision_id){
+            html+=`<div class="decision-meta">
+                <span style="font-size:10px;color:var(--gray-400);font-family:var(--font-mono)">Decision #${d.decision_id}</span>
+                <button class="feedback-btn approve" onclick="submitFeedback(${d.decision_id},'approved')">✓ Approve</button>
+                <button class="feedback-btn flag" onclick="submitFeedback(${d.decision_id},'flagged')">⚑ Flag</button>
+                <button class="feedback-btn reject" onclick="submitFeedback(${d.decision_id},'rejected')">✕ Reject</button>
+            </div>`;
+        }
+        html+=`</div>`;
+        msgs.innerHTML+=html;
+    }catch(e){
+        const el=document.getElementById('thinking');if(el)el.remove();
+        msgs.innerHTML+=`<div class="ask-msg assistant" style="border-color:var(--danger-border)">Error: ${escHtml(e.message)}</div>`;
     }
-
-    input.disabled = false;
-    sendBtn.disabled = false;
-    input.focus();
-    container.scrollTop = container.scrollHeight;
+    btn.disabled=false;msgs.scrollTop=msgs.scrollHeight;
 }
 
-function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-
-// === COMPOSE ===
-function renderRecipients() {
-    fetch('/api/recipients').then(r=>r.json()).then(recs => {
-        document.getElementById('recipient-grid').innerHTML = recs.map(r => `<button class="recipient-btn ${selectedRecipients.has(r)?'selected':''}" onclick="toggleRecipient('${r}')">${r}</button>`).join('');
-        document.getElementById('send-btn').disabled = selectedRecipients.size === 0;
-    });
+async function submitFeedback(id,status){
+    await fetch('/api/decisions/'+id+'/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+    const labels={approved:'Approved ✓',flagged:'Flagged for review',rejected:'Rejected'};
+    showToast('Decision '+labels[status]||status);
+    loadDashboard();
 }
-function toggleRecipient(r) { selectedRecipients.has(r)?selectedRecipients.delete(r):selectedRecipients.add(r); renderRecipients(); }
-function openCompose() { selectedRecipients.clear(); document.getElementById('compose-subject').value=''; document.getElementById('compose-body').value=''; document.getElementById('compose-form-view').style.display='block'; document.getElementById('compose-confirm-view').style.display='none'; renderRecipients(); document.getElementById('compose-modal').classList.add('open'); }
-function closeCompose() { document.getElementById('compose-modal').classList.remove('open'); }
-function showConfirm() { const s=document.getElementById('compose-subject').value; document.getElementById('confirm-meta').textContent='To: '+[...selectedRecipients].join(', ')+(s?' — "'+s+'"':''); document.getElementById('compose-form-view').style.display='none'; document.getElementById('compose-confirm-view').style.display='block'; }
-function hideConfirm() { document.getElementById('compose-form-view').style.display='block'; document.getElementById('compose-confirm-view').style.display='none'; }
-async function confirmSend() { const p={to:[...selectedRecipients],subject:document.getElementById('compose-subject').value,body:document.getElementById('compose-body').value}; await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}); closeCompose(); showToast('Email sent to '+p.to.join(', ')); }
 
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+function formatAnswer(text){
+    return escHtml(text)
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\n/g,'<br>');
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// === DECISIONS/AUDIT TRAIL ===
+async function loadDecisions(){
+    const r=await fetch('/api/decisions');const d=await r.json();
+    const list=document.getElementById('decisions-list');
+    if(d.length===0){
+        list.innerHTML='<div class="empty-state"><div class="icon">📋</div><div class="msg">No decisions recorded yet. Ask PRL a question to begin building your audit trail.</div></div>';
+        return;
+    }
+    list.innerHTML=d.map(dec=>{
+        const statusMap={pending:'pending',approved:'active',flagged:'review',rejected:'high'};
+        return `<div class="decision-row">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div class="decision-question">${escHtml(dec.question)}</div>
+                <span class="badge badge-${statusMap[dec.feedback_status]||'pending'}">${dec.feedback_status}</span>
+            </div>
+            <div class="decision-time">${dec.created_at} · ${dec.chunks_used} sources · ${dec.management_function||dec.mode}</div>
+            ${dec.feedback_notes?`<div style="margin-top:6px;font-size:12px;color:var(--gray-600)"><em>${escHtml(dec.feedback_notes)}</em></div>`:''}
+        </div>`;
+    }).join('');
+}
+
+// === COMPOSE EMAIL ===
+async function loadRecipients(){
+    const r=await fetch('/api/recipients');const d=await r.json();
+    document.getElementById('recipient-grid').innerHTML=d.map(r=>`<button class="recipient-btn" onclick="toggleRecipient(this,'${r}')">${r}</button>`).join('');
+}
+function toggleRecipient(btn,name){
+    btn.classList.toggle('selected');
+    if(selectedRecipients.has(name))selectedRecipients.delete(name);else selectedRecipients.add(name);
+    document.getElementById('send-btn').disabled=selectedRecipients.size===0;
+}
+function openCompose(){
+    selectedRecipients.clear();
+    document.querySelectorAll('.recipient-btn').forEach(b=>b.classList.remove('selected'));
+    document.getElementById('compose-subject').value='';
+    document.getElementById('compose-body').value='';
+    document.getElementById('send-btn').disabled=true;
+    document.getElementById('compose-form-view').style.display='block';
+    document.getElementById('compose-confirm-view').style.display='none';
+    document.getElementById('compose-modal').classList.add('open');
+}
+function closeCompose(){document.getElementById('compose-modal').classList.remove('open')}
+function showConfirm(){
+    document.getElementById('compose-form-view').style.display='none';
+    document.getElementById('compose-confirm-view').style.display='block';
+    document.getElementById('confirm-meta').textContent=`To: ${[...selectedRecipients].join(', ')} · Subject: "${document.getElementById('compose-subject').value}"`;
+}
+function hideConfirm(){
+    document.getElementById('compose-form-view').style.display='block';
+    document.getElementById('compose-confirm-view').style.display='none';
+}
+async function confirmSend(){
+    await fetch('/api/emails/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        to:[...selectedRecipients],
+        subject:document.getElementById('compose-subject').value,
+        body:document.getElementById('compose-body').value
+    })});
+    closeCompose();showToast('Email sent successfully');loadEmails();
+}
 
 // === HEALTH CHECK ===
-async function checkHealth() {
-    try {
-        const r = await fetch('/health'); const d = await r.json();
-        document.getElementById('sidebar-api').textContent = 'API: ' + (d.api_key_configured ? '✓ configured' : '✗ no key');
-        document.getElementById('sidebar-api').style.color = d.api_key_configured ? 'var(--accent-green)' : 'var(--accent-amber)';
-    } catch(e) { document.getElementById('sidebar-api').textContent = 'API: error'; }
+async function checkHealth(){
+    try{
+        const r=await fetch('/health');const d=await r.json();
+        document.getElementById('sb-api').textContent=d.api_key_configured?'✓ Active':'✕ No Key';
+        document.getElementById('sb-api').style.color=d.api_key_configured?'var(--success)':'var(--danger)';
+    }catch(e){
+        document.getElementById('sb-api').textContent='Error';
+        document.getElementById('sb-api').style.color='var(--danger)';
+    }
 }
 
 // === INIT ===
-loadSchedule(); loadEmails(); loadLetters(); loadGovernance(); loadCategories(); loadDocuments(); checkHealth();
+loadDashboard();loadSchedule();loadEmails();loadLetters();loadGovernance();loadCategories();loadRecipients();loadDocuments();checkHealth();
 </script>
 </body>
 </html>

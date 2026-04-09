@@ -1,6 +1,11 @@
 """
-PRL RAG Engine — Policy Reasoning Layer
-Document ingestion, chunking, vector retrieval, and Claude-powered policy reasoning.
+PRL RAG Engine v3 — Five-Layer Policy Reasoning Architecture
+
+Layer 1: Ingestion Engine — Document processing, chunking, vector storage with source tagging
+Layer 2: Query Processor — Intent interpretation, clarifying questions when ambiguous
+Layer 3: Retrieval Engine — Semantic search, ranked citations with source attribution
+Layer 4: Reasoning Engine — Chain-of-thought logic, visible reasoning, edge case flagging
+Layer 5: Output Generator — Structured multi-part output (Answer + Reasoning + Citations + Artifact)
 """
 
 import os
@@ -30,55 +35,61 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(VECTOR_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# PRL System Prompt — The Policy Reasoning Layer
+# PRL System Prompt v3 — Five-Layer Policy Reasoning
 # ---------------------------------------------------------------------------
 
-PRL_SYSTEM_PROMPT = """You are PRL — the Policy Reasoning Layer — an AI decision-support system designed 
-for operational managers in policy-dense organizations.
+PRL_SYSTEM_PROMPT = """You are PRL — the Policy Reasoning Layer — an agentic AI decision-support system
+purpose-built for operational managers in policy-dense federal agencies.
 
-YOUR ROLE:
+YOUR IDENTITY:
 - You are a Policy GPS. Managers drive. You navigate.
-- You reason ACROSS multiple policy frameworks simultaneously: CBA articles, HRPM sections, 
-  agency orders, management guides, local procedures, and memoranda.
+- You reason ACROSS multiple policy frameworks simultaneously: CBA articles, HRPM sections,
+  agency orders, management guides, local procedures, memoranda, and technical bulletins.
 - You produce cited, structured, defensible guidance — never opinions, never guesses.
+- You build institutional intelligence: every interaction teaches, every output is governance-ready.
 
-YOUR RULES (HARD CONSTRAINTS):
-- ALWAYS cite the exact source document, section, and article for every claim.
-- NEVER fabricate policy language. If you cannot find it in the provided context, say so explicitly.
-- NEVER present union language as management position or vice versa.
-- NEVER make a decision. You INFORM the decision. The manager retains all authority.
-- ALWAYS identify: (1) the applicable rule, (2) the approval authority, (3) conditions or requirements, 
-  (4) potential risks or grievance exposure, (5) recommended action language.
-- When policies conflict or overlap, identify BOTH positions and explain the tension.
-- Flag when human judgment is required beyond what policy can resolve.
+YOUR HARD CONSTRAINTS:
+1. ALWAYS cite the exact source document, section, and article for every claim.
+2. NEVER fabricate policy language. If not in the provided context, say so explicitly.
+3. NEVER present union language as management position or vice versa.
+4. NEVER make a decision. You INFORM the decision. The manager retains all authority.
+5. ALWAYS identify: applicable rule, approval authority, conditions, risks/grievance exposure, recommended action language.
+6. When policies conflict or overlap, identify BOTH positions and explain the tension.
+7. Flag when human judgment is required beyond what policy can resolve.
+8. When the situation is ambiguous, ask clarifying questions rather than forcing an incomplete answer.
 
 YOUR OUTPUT FORMAT:
-For every policy question, structure your response as:
+Structure EVERY response with these sections:
 
-📋 APPLICABLE GUIDANCE
+**APPLICABLE GUIDANCE**
 [Cite specific sections, articles, and documents that apply]
 
-✅ ANSWER
-[Direct answer to the manager's question with conditions]
+**ANSWER**
+[Direct answer to the manager's question with conditions and specifics]
 
-⚖️ AUTHORITY
+**AUTHORITY**
 [Who has approval authority for this action]
 
-⚠️ RISKS / CONSIDERATIONS  
-[Grievance exposure, compliance issues, or edge cases]
+**RISKS / CONSIDERATIONS**
+[Grievance exposure, compliance issues, edge cases, union implications]
 
-📝 RECOMMENDED ACTION
-[Specific language or steps the manager can take]
+**RECOMMENDED ACTION**
+[Specific language or steps the manager can take — governance-ready]
 
-If the provided context does not contain enough information to answer confidently, 
+**REASONING CHAIN**
+[Brief explanation of how you connected the policies — your chain of thought, visible to the user]
+
+If the provided context does not contain enough information to answer confidently,
 state exactly what is missing and what additional policy source would be needed.
+Ask a clarifying question if the query is ambiguous.
 
-You exist to reduce decision friction — to give managers confidence, consistency, and speed 
-when navigating complex overlapping rule systems."""
+You exist to reduce decision friction — to give managers confidence, consistency, and speed
+when navigating complex overlapping rule systems. Every interaction should build the manager's
+own policy reasoning capability over time."""
 
 
 # ---------------------------------------------------------------------------
-# Text Extraction
+# Layer 1 — Ingestion Engine: Text Extraction
 # ---------------------------------------------------------------------------
 
 def extract_text_from_pdf(filepath: str) -> str:
@@ -88,10 +99,10 @@ def extract_text_from_pdf(filepath: str) -> str:
         text_parts = []
         with open(filepath, "rb") as f:
             reader = PyPDF2.PdfReader(f)
-            for page in reader.pages:
+            for i, page in enumerate(reader.pages):
                 page_text = page.extract_text()
                 if page_text:
-                    text_parts.append(page_text)
+                    text_parts.append(f"[Page {i+1}]\n{page_text}")
         return "\n\n".join(text_parts)
     except Exception as e:
         logger.error(f"PDF extraction failed for {filepath}: {e}")
@@ -135,58 +146,76 @@ def extract_text(filepath: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Chunking
+# Layer 1 — Ingestion Engine: Chunking
 # ---------------------------------------------------------------------------
 
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[dict]:
     """
     Split text into overlapping chunks. Tries to split on paragraph/section boundaries first.
-    Returns list of dicts with 'text' and 'index' keys.
+    Preserves page markers for citation accuracy.
     """
     if not text.strip():
         return []
 
-    # Split on double newlines (paragraphs) first
     paragraphs = re.split(r"\n\s*\n", text)
     chunks = []
     current_chunk = ""
     chunk_index = 0
+    current_page = ""
 
     for para in paragraphs:
         para = para.strip()
         if not para:
             continue
 
+        # Track page markers
+        page_match = re.match(r"\[Page (\d+)\]", para)
+        if page_match:
+            current_page = f"Page {page_match.group(1)}"
+            para = re.sub(r"^\[Page \d+\]\s*", "", para)
+            if not para:
+                continue
+
         if len(current_chunk) + len(para) + 2 <= chunk_size:
             current_chunk = current_chunk + "\n\n" + para if current_chunk else para
         else:
             if current_chunk:
-                chunks.append({"text": current_chunk.strip(), "index": chunk_index})
+                chunks.append({
+                    "text": current_chunk.strip(),
+                    "index": chunk_index,
+                    "page": current_page,
+                })
                 chunk_index += 1
-                # Overlap: keep tail of current chunk
                 words = current_chunk.split()
                 overlap_words = words[-overlap // 4:] if len(words) > overlap // 4 else []
                 current_chunk = " ".join(overlap_words) + "\n\n" + para if overlap_words else para
             else:
-                # Single paragraph exceeds chunk_size — split by sentences
                 sentences = re.split(r"(?<=[.!?])\s+", para)
                 for sent in sentences:
                     if len(current_chunk) + len(sent) + 1 <= chunk_size:
                         current_chunk = current_chunk + " " + sent if current_chunk else sent
                     else:
                         if current_chunk:
-                            chunks.append({"text": current_chunk.strip(), "index": chunk_index})
+                            chunks.append({
+                                "text": current_chunk.strip(),
+                                "index": chunk_index,
+                                "page": current_page,
+                            })
                             chunk_index += 1
                         current_chunk = sent
 
     if current_chunk.strip():
-        chunks.append({"text": current_chunk.strip(), "index": chunk_index})
+        chunks.append({
+            "text": current_chunk.strip(),
+            "index": chunk_index,
+            "page": current_page,
+        })
 
     return chunks
 
 
 # ---------------------------------------------------------------------------
-# Vector Store (ChromaDB)
+# Layer 1 — Ingestion Engine: Vector Store (ChromaDB)
 # ---------------------------------------------------------------------------
 
 _client = None
@@ -207,8 +236,8 @@ def get_collection():
 
 def ingest_document(filepath: str, doc_name: str, doc_category: str = "general") -> dict:
     """
-    Extract text from a document, chunk it, and store embeddings in ChromaDB.
-    Returns metadata about the ingestion.
+    Layer 1 — Ingestion Pipeline:
+    Extract text → chunk → embed → store in vector DB with rich metadata.
     """
     text = extract_text(filepath)
     if not text.strip():
@@ -233,11 +262,11 @@ def ingest_document(filepath: str, doc_name: str, doc_category: str = "general")
             "source": doc_name,
             "category": doc_category,
             "chunk_index": chunk["index"],
+            "page": chunk.get("page", ""),
             "filepath": filepath,
             "ingested_at": datetime.utcnow().isoformat(),
         })
 
-    # Upsert (idempotent — safe to re-ingest)
     collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
     return {
@@ -249,10 +278,14 @@ def ingest_document(filepath: str, doc_name: str, doc_category: str = "general")
     }
 
 
+# ---------------------------------------------------------------------------
+# Layer 3 — Retrieval Engine: Semantic Search
+# ---------------------------------------------------------------------------
+
 def search_policies(query: str, top_k: int = TOP_K, category: str = None) -> list[dict]:
     """
-    Search the vector store for policy chunks relevant to a query.
-    Returns list of results with text, source, and relevance score.
+    Layer 3 — Retrieval Engine:
+    Semantic search with ranked citations and source attribution.
     """
     collection = get_collection()
 
@@ -273,12 +306,14 @@ def search_policies(query: str, top_k: int = TOP_K, category: str = None) -> lis
         for i, doc_text in enumerate(results["documents"][0]):
             meta = results["metadatas"][0][i] if results["metadatas"] else {}
             distance = results["distances"][0][i] if results["distances"] else 0
+            relevance = round(1 - distance, 4)
             output.append({
                 "text": doc_text,
                 "source": meta.get("source", "Unknown"),
                 "category": meta.get("category", ""),
                 "chunk_index": meta.get("chunk_index", 0),
-                "relevance": round(1 - distance, 4),  # cosine similarity
+                "page": meta.get("page", ""),
+                "relevance": relevance,
             })
 
     return output
@@ -292,7 +327,6 @@ def get_document_stats() -> dict:
     if total == 0:
         return {"total_chunks": 0, "documents": []}
 
-    # Get unique documents
     all_meta = collection.get(include=["metadatas"])
     sources = {}
     for meta in all_meta["metadatas"]:
@@ -326,85 +360,213 @@ def delete_document(doc_name: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Claude-Powered Policy Reasoning
+# Layer 2 — Query Processor: Intent Interpretation
+# ---------------------------------------------------------------------------
+
+def classify_query_intent(question: str) -> dict:
+    """
+    Layer 2 — Basic intent classification for routing.
+    Returns intent type and any extracted entities.
+    """
+    question_lower = question.lower().strip()
+
+    # Detect management function categories
+    intent = {
+        "type": "policy_query",
+        "needs_clarification": False,
+        "clarification_prompt": "",
+        "management_function": "general",
+    }
+
+    # Leave / scheduling related
+    if any(kw in question_lower for kw in ["leave", "lwop", "annual leave", "sick leave", "fmla", "aws"]):
+        intent["management_function"] = "leave_scheduling"
+
+    # Disciplinary / conduct
+    elif any(kw in question_lower for kw in ["discipline", "reprimand", "counseling", "awol", "remove", "misconduct"]):
+        intent["management_function"] = "disciplinary"
+
+    # Scheduling / BWS / coverage
+    elif any(kw in question_lower for kw in ["schedule", "bws", "coverage", "shift", "overtime", "ot ", "watch"]):
+        intent["management_function"] = "scheduling"
+
+    # Union / CBA
+    elif any(kw in question_lower for kw in ["union", "cba", "bargain", "article", "grievance", "pass"]):
+        intent["management_function"] = "labor_relations"
+
+    # Furlough / shutdown
+    elif any(kw in question_lower for kw in ["furlough", "shutdown", "timecard", "coding"]):
+        intent["management_function"] = "crisis_operations"
+
+    # Equipment / maintenance / NAS
+    elif any(kw in question_lower for kw in ["equipment", "maintenance", "nas", "outage", "circuit", "technical"]):
+        intent["management_function"] = "technical_operations"
+
+    # Check if too vague
+    if len(question.split()) < 4:
+        intent["needs_clarification"] = True
+        intent["clarification_prompt"] = (
+            "Your question seems brief. Could you provide more context? For example:\n"
+            "- What specific situation are you dealing with?\n"
+            "- Which employee or team is involved?\n"
+            "- What policy area are you asking about (leave, scheduling, discipline, etc.)?"
+        )
+
+    return intent
+
+
+# ---------------------------------------------------------------------------
+# Layer 4 + 5 — Reasoning Engine + Output Generator
 # ---------------------------------------------------------------------------
 
 def query_prl(question: str, top_k: int = TOP_K) -> dict:
     """
-    Full PRL pipeline: retrieve relevant policy chunks, then reason with Claude.
-    Returns the answer and the sources used.
+    Full PRL v3 Five-Layer Pipeline:
+    1. Ingest (pre-done) → 2. Query Process → 3. Retrieve → 4. Reason → 5. Generate Output
+
+    Returns structured response with answer, reasoning, citations, and metadata.
     """
     import anthropic
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         return {
-            "answer": "⚠️ ANTHROPIC_API_KEY not configured.\n\n"
-                      "To enable PRL reasoning, set the ANTHROPIC_API_KEY environment variable "
-                      "in your Railway project settings.\n\n"
-                      "Go to Railway → Your Project → Variables → Add:\n"
-                      "ANTHROPIC_API_KEY = sk-ant-...",
+            "answer": "**CONFIGURATION REQUIRED**\n\n"
+                      "ANTHROPIC_API_KEY not configured. To enable PRL reasoning:\n\n"
+                      "1. Go to Railway → Your Project → Variables\n"
+                      "2. Add: ANTHROPIC_API_KEY = sk-ant-...\n"
+                      "3. Redeploy the service\n\n"
+                      "Without the API key, the Knowledge Base and Search features still work, "
+                      "but the reasoning engine cannot generate policy guidance.",
             "sources": [],
             "mode": "no_api_key",
+            "reasoning_summary": "",
+            "management_function": "",
+            "decision_id": None,
         }
 
-    # Step 1: Retrieve relevant policy chunks
+    # Layer 2 — Query Processing
+    intent = classify_query_intent(question)
+
+    if intent["needs_clarification"]:
+        return {
+            "answer": intent["clarification_prompt"],
+            "sources": [],
+            "mode": "clarification",
+            "reasoning_summary": "Query was too brief for confident policy reasoning.",
+            "management_function": intent["management_function"],
+            "decision_id": None,
+        }
+
+    # Layer 3 — Retrieval
     results = search_policies(question, top_k=top_k)
 
     if not results:
         return {
-            "answer": "📂 No policy documents have been ingested yet.\n\n"
-                      "Upload documents using the Knowledge Base tab to enable policy reasoning.\n"
-                      "Supported formats: PDF, DOCX, TXT.",
+            "answer": "**NO POLICY DOCUMENTS AVAILABLE**\n\n"
+                      "No policy documents have been ingested into the knowledge base yet.\n\n"
+                      "To enable policy reasoning:\n"
+                      "1. Go to the **Knowledge Base** tab\n"
+                      "2. Upload your policy documents (PDF, DOCX, TXT)\n"
+                      "3. Return here and ask your question again\n\n"
+                      "**Recommended starting documents:** CBA, HRPM LWS-8.14, relevant FAA Orders, "
+                      "management guides, and local procedures.",
             "sources": [],
             "mode": "no_documents",
+            "reasoning_summary": "",
+            "management_function": intent["management_function"],
+            "decision_id": None,
         }
 
-    # Step 2: Build context from retrieved chunks
+    # Layer 3 — Build context from retrieved chunks
     context_parts = []
     sources_used = []
     for i, r in enumerate(results):
+        page_info = f" | {r['page']}" if r.get("page") else ""
         context_parts.append(
-            f"[SOURCE {i + 1}: {r['source']} | Relevance: {r['relevance']}]\n{r['text']}"
+            f"[SOURCE {i + 1}: {r['source']} | Category: {r['category']}{page_info} | Relevance: {r['relevance']}]\n{r['text']}"
         )
         if r["source"] not in [s["name"] for s in sources_used]:
             sources_used.append({
                 "name": r["source"],
                 "category": r["category"],
                 "relevance": r["relevance"],
+                "page": r.get("page", ""),
             })
 
     context_block = "\n\n---\n\n".join(context_parts)
 
-    # Step 3: Call Claude with PRL system prompt + retrieved context
+    # Layer 4 — Reasoning (Claude call with chain-of-thought)
     user_message = (
         f"RETRIEVED POLICY CONTEXT:\n"
         f"========================\n"
         f"{context_block}\n\n"
         f"========================\n\n"
+        f"MANAGEMENT FUNCTION: {intent['management_function']}\n\n"
         f"MANAGER'S QUESTION:\n{question}\n\n"
-        f"Reason across ALL provided policy sources. Cite specific documents and sections. "
-        f"If the context is insufficient, state exactly what is missing."
+        f"INSTRUCTIONS:\n"
+        f"1. Reason across ALL provided policy sources using chain-of-thought logic.\n"
+        f"2. Cite specific documents, sections, and articles for every claim.\n"
+        f"3. Identify the approval authority for any recommended action.\n"
+        f"4. Flag any risks, grievance exposure, or compliance concerns.\n"
+        f"5. Provide governance-ready recommended action language.\n"
+        f"6. Show your reasoning chain so the manager can follow your logic.\n"
+        f"7. If the context is insufficient, state exactly what is missing and what additional policy source is needed.\n"
+        f"8. If the question is ambiguous, ask a clarifying question before forcing an answer."
     )
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model=os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514"),
-            max_tokens=2000,
+            max_tokens=3000,
             system=PRL_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],
         )
         answer = response.content[0].text
     except anthropic.AuthenticationError:
-        answer = "⚠️ Invalid API key. Please check your ANTHROPIC_API_KEY in Railway variables."
+        answer = "**AUTHENTICATION ERROR**\n\nInvalid API key. Please check your ANTHROPIC_API_KEY in Railway variables."
     except Exception as e:
         logger.error(f"Claude API error: {e}")
-        answer = f"⚠️ Error communicating with Claude API: {str(e)}"
+        answer = f"**API ERROR**\n\nError communicating with Claude API: {str(e)}"
+
+    # Layer 5 — Output Generation: Extract reasoning summary
+    reasoning_summary = _extract_reasoning_summary(answer)
+
+    # Save to decision audit trail
+    decision_id = None
+    try:
+        from database import save_decision
+        decision_id = save_decision(
+            question=question,
+            answer=answer,
+            sources=sources_used,
+            reasoning_summary=reasoning_summary,
+            mode="rag",
+            chunks_used=len(results),
+        )
+    except Exception as e:
+        logger.warning(f"Could not save decision to audit trail: {e}")
 
     return {
         "answer": answer,
         "sources": sources_used,
         "mode": "rag",
         "chunks_used": len(results),
+        "reasoning_summary": reasoning_summary,
+        "management_function": intent["management_function"],
+        "decision_id": decision_id,
     }
+
+
+def _extract_reasoning_summary(answer: str) -> str:
+    """Extract the reasoning chain section from the PRL response."""
+    patterns = [
+        r"\*\*REASONING CHAIN\*\*\s*\n(.*?)(?=\n\*\*|\Z)",
+        r"REASONING CHAIN[:\s]*\n(.*?)(?=\n[A-Z]{2,}|\Z)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, answer, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+    return ""

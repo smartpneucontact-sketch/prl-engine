@@ -1,31 +1,52 @@
-# PRL Engine v2.0 — Policy Reasoning Layer
+# PRL Engine v3.0 — Policy Reasoning Layer
 
-**Decision Intelligence Engine** — RAG-powered policy decision support for operational managers in policy-dense organizations.
+**Five-Layer Decision Intelligence Engine** — RAG-powered policy reasoning for operational managers in policy-dense federal agencies.
 
-## What It Does
+Built by Ronald C. Owens Jr. | CJD Global Defense Contracting LLC
 
-PRL is a **Policy GPS** — managers drive, PRL navigates. It reasons across multiple overlapping policy frameworks (CBA, HRPM, agency orders, management guides, memos) and returns cited, structured, defensible guidance in seconds.
-
-### Architecture
+## Architecture
 
 ```
-Manager Query → Vector Search (ChromaDB) → Policy Retrieval → Claude Reasoning → Cited Answer
+Manager Query → Query Processor → Vector Search (ChromaDB) → Chain-of-Thought Reasoning (Claude) → Structured Governance-Ready Output
 ```
+
+### Five-Layer RAG Architecture
+
+| Layer | Function |
+|-------|----------|
+| **Layer 1 — Ingestion Engine** | Policy documents processed, chunked, and stored in vector database with source tagging |
+| **Layer 2 — Query Processor** | Intent interpretation; clarifying questions when ambiguous |
+| **Layer 3 — Retrieval Engine** | Semantic search; ranked citations with source attribution |
+| **Layer 4 — Reasoning Engine** | Chain-of-thought logic; visible reasoning pathway; edge case flagging |
+| **Layer 5 — Output Generator** | Plain language answer + reasoning summary + citations + governance artifact |
 
 ### Features
 
 | Tab | Function |
 |-----|----------|
-| **Schedule** | Operational event tracking |
-| **Email** | Compose with routing (ETR, HR, Supervisor, AIT Leadership) |
-| **Letters** | Template library for official correspondence |
-| **Ask PRL** | RAG-powered policy reasoning engine with citations |
+| **Dashboard** | Command center with key metrics and quick actions |
+| **Ask PRL** | Five-layer policy reasoning engine with citations and feedback loop |
 | **Knowledge Base** | Upload, ingest, and manage policy documents |
-| **Governance** | Regulatory controls tracking |
+| **Schedule** | Operational event tracking with CRUD |
+| **Email** | Compose with routing (ETR, HR, Supervisor, AIT Leadership, Union Rep, Legal) |
+| **Letters** | Template library for official correspondence (10 types) |
+| **Governance** | Regulatory and compliance framework tracking |
+| **Audit Trail** | Decision history with approval/flagging feedback loop |
+
+## What's New in v3
+
+- **Five-Layer RAG Architecture** — Query processing, intent classification, chain-of-thought reasoning
+- **Institutional Memory** — Decision audit trail with approval/flagging/rejection feedback loop
+- **SQLite Persistence** — All data (schedule, emails, letters, governance, decisions) persisted to database
+- **Professional UI** — Gold/navy federal-grade design matching CJD Global branding
+- **Dashboard** — Command center with real-time metrics
+- **Expanded Letter Templates** — 10 governance-ready templates across 6 categories
+- **Enhanced Governance** — 10 regulatory items across 6 categories
+- **Structured Output** — Every PRL response includes: Guidance, Answer, Authority, Risks, Recommended Action, Reasoning Chain
 
 ## Setup
 
-### 1. Local Development
+### Local Development
 
 ```bash
 pip install -r requirements.txt
@@ -35,44 +56,12 @@ python app.py
 
 Visit `http://localhost:5000`
 
-### 2. Deploy to Railway
+### Deploy to Railway
 
-**Push to GitHub:**
-```bash
-git init && git add . && git commit -m "PRL Engine v2.0"
-git remote add origin https://github.com/YOUR_ORG/prl-engine.git
-git push -u origin main
-```
-
-**On Railway:**
-1. Go to [railway.com](https://railway.com) → New Project → Deploy from GitHub
-2. Select the repo
-3. Go to **Variables** tab and add:
-   - `ANTHROPIC_API_KEY` = your Anthropic API key
-4. Go to **Settings** → **Networking** → **Generate Domain**
-
-### 3. Add Your API Key
-
-The PRL Engine uses Claude for policy reasoning. You need an Anthropic API key:
-
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Create an API key
-3. Add it as `ANTHROPIC_API_KEY` in Railway Variables
-
-Without the key, the app runs fine but Ask PRL will show a setup message instead of reasoning.
-
-## Usage
-
-1. **Upload policy documents** via the Knowledge Base tab (PDF, DOCX, TXT)
-2. **Ask questions** in the Ask PRL tab — the engine retrieves relevant sections and reasons across them
-3. **Get cited answers** with source documents, approval authority, conditions, and risks
-
-### Example Queries
-
-- "Can a technician take LWOP after sick leave exhaustion?"
-- "What are the fatigue rules under Article 34?"
-- "Who has approval authority for schedule changes under the CBA?"
-- "What documentation is required for an FMLA request?"
+1. Push to GitHub
+2. Railway → New Project → Deploy from GitHub
+3. Add `ANTHROPIC_API_KEY` in Variables
+4. Settings → Networking → Generate Domain
 
 ## Environment Variables
 
@@ -82,18 +71,20 @@ Without the key, the app runs fine but Ask PRL will show a setup message instead
 | `PRL_MODEL` | No | `claude-sonnet-4-20250514` | Claude model to use |
 | `PRL_CHUNK_SIZE` | No | `800` | Document chunk size (chars) |
 | `PRL_TOP_K` | No | `8` | Number of chunks to retrieve |
+| `PRL_DB_PATH` | No | `./prl_data.db` | SQLite database path |
 | `PORT` | No | `5000` | Server port |
 
 ## Tech Stack
 
-- **Backend**: Python / Flask
+- **Backend**: Python 3.11 / Flask
+- **Database**: SQLite (persistent)
 - **Vector Store**: ChromaDB (embedded, persistent)
 - **LLM**: Anthropic Claude (via API)
 - **Document Processing**: PyPDF2, python-docx
-- **Deployment**: Railway / Nixpacks
+- **Deployment**: Railway / Nixpacks / Gunicorn
 
 ---
 
 *"We will not wait for failure to teach us."*
 
-**PRL Engine** — CJD Global · MIT Organizational Transformation
+**PRL Engine v3.0** — CJD Global Defense Contracting LLC

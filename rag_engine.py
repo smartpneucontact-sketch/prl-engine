@@ -35,57 +35,30 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(VECTOR_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# PRL System Prompt v3 — Five-Layer Policy Reasoning
+# PRL System Prompt v3 — Manager Ops Copilot (FAA TechOps PASS BWS & AWS)
 # ---------------------------------------------------------------------------
 
-PRL_SYSTEM_PROMPT = """You are PRL — the Policy Reasoning Layer — an agentic AI decision-support system
-purpose-built for operational managers in policy-dense federal agencies.
+_PROMPT_FILE = Path(__file__).parent / "PRL_System_Prompt_v3.txt"
 
-YOUR IDENTITY:
-- You are a Policy GPS. Managers drive. You navigate.
-- You reason ACROSS multiple policy frameworks simultaneously: CBA articles, HRPM sections,
-  agency orders, management guides, local procedures, memoranda, and technical bulletins.
-- You produce cited, structured, defensible guidance — never opinions, never guesses.
-- You build institutional intelligence: every interaction teaches, every output is governance-ready.
 
-YOUR HARD CONSTRAINTS:
-1. ALWAYS cite the exact source document, section, and article for every claim.
-2. NEVER fabricate policy language. If not in the provided context, say so explicitly.
-3. NEVER present union language as management position or vice versa.
-4. NEVER make a decision. You INFORM the decision. The manager retains all authority.
-5. ALWAYS identify: applicable rule, approval authority, conditions, risks/grievance exposure, recommended action language.
-6. When policies conflict or overlap, identify BOTH positions and explain the tension.
-7. Flag when human judgment is required beyond what policy can resolve.
-8. When the situation is ambiguous, ask clarifying questions rather than forcing an incomplete answer.
+def _load_system_prompt() -> str:
+    """Load PRL system prompt from env var, then file, then fallback."""
+    env_prompt = os.environ.get("SYSTEM_PROMPT", "").strip()
+    if env_prompt:
+        return env_prompt
+    try:
+        return _PROMPT_FILE.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        logger.warning(f"System prompt file not found at {_PROMPT_FILE}")
+        return (
+            "You are the PRL Manager Ops Copilot for FAA Technical Operations. "
+            "Cite governing policy sections (PASS CBA Articles 31–35, HRPM LWS-8.14/8.15, "
+            "Article 34 Fatigue Requirements) for every claim. End each response with "
+            "Sources used / Governing authority / Risk flags / Recommended action."
+        )
 
-YOUR OUTPUT FORMAT:
-Structure EVERY response with these sections:
 
-**APPLICABLE GUIDANCE**
-[Cite specific sections, articles, and documents that apply]
-
-**ANSWER**
-[Direct answer to the manager's question with conditions and specifics]
-
-**AUTHORITY**
-[Who has approval authority for this action]
-
-**RISKS / CONSIDERATIONS**
-[Grievance exposure, compliance issues, edge cases, union implications]
-
-**RECOMMENDED ACTION**
-[Specific language or steps the manager can take — governance-ready]
-
-**REASONING CHAIN**
-[Brief explanation of how you connected the policies — your chain of thought, visible to the user]
-
-If the provided context does not contain enough information to answer confidently,
-state exactly what is missing and what additional policy source would be needed.
-Ask a clarifying question if the query is ambiguous.
-
-You exist to reduce decision friction — to give managers confidence, consistency, and speed
-when navigating complex overlapping rule systems. Every interaction should build the manager's
-own policy reasoning capability over time."""
+PRL_SYSTEM_PROMPT = _load_system_prompt()
 
 
 # ---------------------------------------------------------------------------

@@ -336,14 +336,56 @@ def delete_document(doc_name: str) -> dict:
 # Layer 2 — Query Processor: Intent Interpretation
 # ---------------------------------------------------------------------------
 
+# Order matters — first matching bucket wins. Watch-schedule keywords come
+# before leave keywords so "AWS" (Alternate Work Schedule) doesn't collide
+# with annual leave terminology. Fatigue comes before discipline so
+# "fatigue" + "remove" queries route to compliance, not removal action.
+INTENT_BUCKETS = [
+    ("watch_schedule_authority", [
+        "bws", "basic watch schedule", "aws", "alternate work schedule",
+        "watch schedule", "midshift", "mid shift", "scd", "rotation",
+        "swap", "shift swap", "tour", "fixed line", "article 31",
+        "article 32", "section 9", "section 6", "coverage", "staffing",
+    ]),
+    ("fatigue_compliance", [
+        "fatigue", "rest period", "rest between shifts", "10 hours",
+        "article 34", "minimum rest", "consecutive shifts",
+    ]),
+    ("overtime_premium", [
+        "overtime", " ot ", "ot solicitation", "premium pay",
+        "sunday pay", "holiday pay",
+    ]),
+    ("leave_request", [
+        "leave", "lwop", "annual leave", "sick leave", "fmla",
+        "credit hours", "comp time", "religious", "hrpm lws-8.14",
+    ]),
+    ("discipline_action", [
+        "discipline", "reprimand", "counseling", "awol", "misconduct",
+        "last chance", "proposal to remove",
+    ]),
+    ("union_collaboration", [
+        "union", "pass", "cba", "bargain", "grievance", "article 10",
+        "article 3", "collaboration", "notification", "mou",
+    ]),
+    ("tech_ops_maintenance", [
+        "equipment", "maintenance", "nas", "outage", "circuit",
+        "rcag", "asr", "atct", "vortac", "preventive", "corrective",
+        "work order",
+    ]),
+    ("crisis_operations", [
+        "furlough", "shutdown", "timecard", "coding", "continuity",
+    ]),
+]
+
+
 def classify_query_intent(question: str) -> dict:
     """
-    Layer 2 — Basic intent classification for routing.
-    Returns intent type and any extracted entities.
+    Layer 2 — Intent classification aligned with FAA TechOps Manager Ops Copilot.
+    First-match-wins keyword routing across BWS/AWS, fatigue, leave, discipline,
+    union, tech ops, and crisis buckets.
     """
     question_lower = question.lower().strip()
 
-    # Detect management function categories
     intent = {
         "type": "policy_query",
         "needs_clarification": False,
@@ -351,38 +393,21 @@ def classify_query_intent(question: str) -> dict:
         "management_function": "general",
     }
 
-    # Leave / scheduling related
-    if any(kw in question_lower for kw in ["leave", "lwop", "annual leave", "sick leave", "fmla", "aws"]):
-        intent["management_function"] = "leave_scheduling"
+    for bucket_name, keywords in INTENT_BUCKETS:
+        if any(kw in question_lower for kw in keywords):
+            intent["management_function"] = bucket_name
+            break
 
-    # Disciplinary / conduct
-    elif any(kw in question_lower for kw in ["discipline", "reprimand", "counseling", "awol", "remove", "misconduct"]):
-        intent["management_function"] = "disciplinary"
-
-    # Scheduling / BWS / coverage
-    elif any(kw in question_lower for kw in ["schedule", "bws", "coverage", "shift", "overtime", "ot ", "watch"]):
-        intent["management_function"] = "scheduling"
-
-    # Union / CBA
-    elif any(kw in question_lower for kw in ["union", "cba", "bargain", "article", "grievance", "pass"]):
-        intent["management_function"] = "labor_relations"
-
-    # Furlough / shutdown
-    elif any(kw in question_lower for kw in ["furlough", "shutdown", "timecard", "coding"]):
-        intent["management_function"] = "crisis_operations"
-
-    # Equipment / maintenance / NAS
-    elif any(kw in question_lower for kw in ["equipment", "maintenance", "nas", "outage", "circuit", "technical"]):
-        intent["management_function"] = "technical_operations"
-
-    # Check if too vague
-    if len(question.split()) < 4:
+    # Clarification gate: only trigger if the query is very short AND no domain
+    # keyword matched. "BWS Q3?" (3 words, matches bws) flows through; "help me"
+    # (2 words, no match) asks for context.
+    if len(question.split()) < 3 and intent["management_function"] == "general":
         intent["needs_clarification"] = True
         intent["clarification_prompt"] = (
-            "Your question seems brief. Could you provide more context? For example:\n"
-            "- What specific situation are you dealing with?\n"
-            "- Which employee or team is involved?\n"
-            "- What policy area are you asking about (leave, scheduling, discipline, etc.)?"
+            "Your question is brief. Could you add context? For example:\n"
+            "- Are you asking about BWS, AWS, leave, fatigue, or discipline?\n"
+            "- Which employee, team, or facility is involved?\n"
+            "- What is the timeframe (mid-cycle, Q3, immediate)?"
         )
 
     return intent

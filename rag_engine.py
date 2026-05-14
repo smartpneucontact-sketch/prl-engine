@@ -15,6 +15,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import chromadb
 from chromadb.config import Settings
@@ -30,6 +31,8 @@ VECTOR_DIR = os.environ.get("PRL_VECTOR_DIR", os.path.join(os.path.dirname(__fil
 CHUNK_SIZE = int(os.environ.get("PRL_CHUNK_SIZE", 800))
 CHUNK_OVERLAP = int(os.environ.get("PRL_CHUNK_OVERLAP", 150))
 TOP_K = int(os.environ.get("PRL_TOP_K", 8))
+SUMMARY_INPUT_CAP = int(os.environ.get("PRL_SUMMARY_CAP", 12000))
+SUMMARY_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="prl-summarizer")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(VECTOR_DIR, exist_ok=True)
@@ -207,10 +210,12 @@ def get_collection():
     return _collection
 
 
-def ingest_document(filepath: str, doc_name: str, doc_category: str = "general") -> dict:
+def ingest_document(filepath: str, doc_name: str, doc_category: str = "general",
+                    project_id: int = None) -> dict:
     """
     Layer 1 — Ingestion Pipeline:
     Extract text → chunk → embed → store in vector DB with rich metadata.
+    Also creates a SQLite documents row and queues async summarization.
     """
     text = extract_text(filepath)
     if not text.strip():
@@ -242,13 +247,161 @@ def ingest_document(filepath: str, doc_name: str, doc_category: str = "general")
 
     collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
+    doc_id = None
+    try:
+        from database import upsert_document_row
+        doc_id = upsert_document_row(doc_name, doc_category, len(chunks), project_id)
+        SUMMARY_POOL.submit(_summarize_in_background, doc_id, text, doc_name, doc_category)
+    except Exception as e:
+        logger.warning(f"Could not register document row for summarization: {e}")
+
     return {
         "status": "success",
         "document": doc_name,
+        "document_id": doc_id,
         "category": doc_category,
         "chunks": len(chunks),
         "total_chars": len(text),
+        "summary_status": "pending",
     }
+
+
+# ---------------------------------------------------------------------------
+# Layer 1 — Auto-Summarization (background, structured JSON)
+# ---------------------------------------------------------------------------
+
+_SUMMARIZER_PROMPT = """You are a federal-policy document summarizer for the PRL Engine.
+Read the document excerpt and produce a STRICT JSON object with these fields:
+
+{
+  "headline": "<≤80-char title-cased headline>",
+  "summary_paragraph": "<2–3 sentence prose summary>",
+  "document_type": "<one of: Incident Report | Policy Memo | CBA Article | HRPM Section | FAA Order | Letter | Management Guide | Local Procedure | Technical Bulletin | Other>",
+  "key_dates": ["YYYY-MM-DD: <event>", ...],
+  "parties_mentioned": ["<role or name>", ...],
+  "policy_citations": ["<article/section/order reference>", ...],
+  "action_items": ["<imperative phrase>", ...],
+  "risk_flags": ["<compliance or grievance exposure>", ...]
+}
+
+Rules:
+- Output ONLY the JSON object. No preamble, no markdown fences.
+- Use empty arrays [] when a field has no content. Never invent facts.
+- Dates must be ISO-8601 (YYYY-MM-DD) when extractable; omit otherwise.
+- Citations should preserve exact reference style (e.g., "Article 31 Section 9", "HRPM LWS-8.14")."""
+
+
+def summarize_document(text: str, doc_name: str, category: str) -> dict:
+    """Call Claude to produce a structured JSON summary of a document."""
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY not configured")
+
+    excerpt = text[:SUMMARY_INPUT_CAP]
+    truncated_note = f"\n\n[NOTE: Document truncated to {SUMMARY_INPUT_CAP} chars; full length {len(text)}.]" \
+        if len(text) > SUMMARY_INPUT_CAP else ""
+
+    user_message = (
+        f"DOCUMENT NAME: {doc_name}\n"
+        f"CATEGORY: {category}\n"
+        f"-----\n{excerpt}{truncated_note}\n-----\n"
+        f"Produce the JSON summary."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model=os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514"),
+        max_tokens=1200,
+        system=_SUMMARIZER_PROMPT,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    raw = response.content[0].text.strip()
+
+    # Strip accidental markdown fences if Claude wraps the JSON
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+
+    parsed = json.loads(raw)
+
+    # Validate / normalize required keys
+    defaults = {
+        "headline": doc_name,
+        "summary_paragraph": "",
+        "document_type": "Other",
+        "key_dates": [],
+        "parties_mentioned": [],
+        "policy_citations": [],
+        "action_items": [],
+        "risk_flags": [],
+    }
+    for k, v in defaults.items():
+        parsed.setdefault(k, v)
+
+    return parsed
+
+
+def _summarize_in_background(doc_id: int, text: str, doc_name: str, category: str):
+    """Worker that runs in the ThreadPoolExecutor; updates SQLite when done."""
+    from database import mark_document_processing, save_document_summary, mark_document_failed
+    try:
+        mark_document_processing(doc_id)
+        summary = summarize_document(text, doc_name, category)
+        save_document_summary(doc_id, summary, summary.get("summary_paragraph", ""))
+        logger.info(f"Summarized doc {doc_id} ({doc_name})")
+    except Exception as e:
+        logger.error(f"Summarization failed for doc {doc_id} ({doc_name}): {e}")
+        try:
+            mark_document_failed(doc_id, str(e)[:500])
+        except Exception:
+            pass
+
+
+def get_document_full_text(doc_name: str) -> str:
+    """Reassemble original document text by concatenating chunks from ChromaDB."""
+    collection = get_collection()
+    results = collection.get(where={"source": doc_name}, include=["documents", "metadatas"])
+    if not results or not results.get("documents"):
+        return ""
+    pairs = list(zip(results["documents"], results["metadatas"] or []))
+    pairs.sort(key=lambda p: p[1].get("chunk_index", 0) if p[1] else 0)
+    return "\n\n".join(text for text, _ in pairs)
+
+
+def resummarize_document(doc_id: int) -> dict:
+    """Manually re-run summarization for a document. Returns status dict."""
+    from database import get_document
+    doc = get_document(doc_id)
+    if not doc:
+        return {"status": "error", "message": "Document not found"}
+    text = get_document_full_text(doc["name"])
+    if not text:
+        return {"status": "error", "message": "Could not reassemble document text from ChromaDB"}
+    SUMMARY_POOL.submit(_summarize_in_background, doc_id, text, doc["name"], doc["category"])
+    return {"status": "queued", "document_id": doc_id}
+
+
+def backfill_document_rows():
+    """
+    On startup: ensure every ChromaDB-known document has a SQLite documents row.
+    Queue summarization for any row whose summary is pending or failed.
+    Idempotent — safe to call on every boot.
+    """
+    try:
+        from database import upsert_document_row, get_pending_documents
+        stats = get_document_stats()
+        for doc in stats["documents"]:
+            upsert_document_row(doc["name"], doc["category"], doc["chunks"])
+
+        pending = get_pending_documents()
+        for row in pending:
+            text = get_document_full_text(row["name"])
+            if text:
+                SUMMARY_POOL.submit(_summarize_in_background, row["id"], text, row["name"], row["category"])
+        logger.info(f"Backfill: queued {len(pending)} document(s) for summarization")
+    except Exception as e:
+        logger.warning(f"Document backfill skipped: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -327,6 +480,11 @@ def delete_document(doc_name: str) -> dict:
 
     if ids_to_delete:
         collection.delete(ids=ids_to_delete)
+        try:
+            from database import delete_document_row
+            delete_document_row(doc_name)
+        except Exception as e:
+            logger.warning(f"Could not delete documents row for {doc_name}: {e}")
         return {"status": "deleted", "document": doc_name, "chunks_removed": len(ids_to_delete)}
 
     return {"status": "not_found", "document": doc_name}
@@ -417,7 +575,7 @@ def classify_query_intent(question: str) -> dict:
 # Layer 4 + 5 — Reasoning Engine + Output Generator
 # ---------------------------------------------------------------------------
 
-def query_prl(question: str, top_k: int = TOP_K) -> dict:
+def query_prl(question: str, top_k: int = TOP_K, project_id: int = None) -> dict:
     """
     Full PRL v3 Five-Layer Pipeline:
     1. Ingest (pre-done) → 2. Query Process → 3. Retrieve → 4. Reason → 5. Generate Output
@@ -542,6 +700,7 @@ def query_prl(question: str, top_k: int = TOP_K) -> dict:
             reasoning_summary=reasoning_summary,
             mode="rag",
             chunks_used=len(results),
+            project_id=project_id,
         )
     except Exception as e:
         logger.warning(f"Could not save decision to audit trail: {e}")

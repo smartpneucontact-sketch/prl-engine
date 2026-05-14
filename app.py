@@ -19,6 +19,8 @@ from rag_engine import (
     get_document_stats,
     delete_document,
     search_policies,
+    backfill_document_rows,
+    resummarize_document,
     UPLOAD_DIR,
 )
 
@@ -41,6 +43,15 @@ from database import (
     save_feedback,
     get_feedback,
     get_dashboard_stats,
+    get_projects,
+    get_project,
+    create_project,
+    update_project,
+    delete_project,
+    get_project_timeline,
+    get_documents_with_summaries,
+    get_document,
+    assign_document_project,
 )
 
 # ---------------------------------------------------------------------------
@@ -69,8 +80,9 @@ DOC_CATEGORIES = [
 
 EMAIL_RECIPIENTS = ["ETR", "HR", "Supervisor", "AIT Leadership", "PASS Union Rep", "FAA Legal"]
 
-# Initialize database on startup
+# Initialize database on startup, then backfill any documents missing summaries
 init_db()
+backfill_document_rows()
 
 # ---------------------------------------------------------------------------
 # Routes — Pages
@@ -182,8 +194,44 @@ def api_categories():
 
 @app.route("/api/documents", methods=["GET"])
 def api_documents():
+    """Return ChromaDB stats merged with SQLite summary metadata."""
     stats = get_document_stats()
-    return jsonify(stats)
+    summaries = {d["name"]: d for d in get_documents_with_summaries()}
+    enriched = []
+    for doc in stats["documents"]:
+        s = summaries.get(doc["name"], {})
+        enriched.append({
+            **doc,
+            "id": s.get("id"),
+            "project_id": s.get("project_id"),
+            "project_name": s.get("project_name"),
+            "summary_status": s.get("summary_status", "pending"),
+            "summary_text": s.get("summary_text", ""),
+            "summary_json": s.get("summary_json", {}),
+            "summary_error": s.get("summary_error", ""),
+            "summarized_at": s.get("summarized_at"),
+        })
+    return jsonify({"total_chunks": stats["total_chunks"], "documents": enriched})
+
+
+@app.route("/api/documents/<int:doc_id>")
+def api_document_detail(doc_id):
+    doc = get_document(doc_id)
+    if not doc:
+        return jsonify({"status": "error", "message": "Not found"}), 404
+    return jsonify(doc)
+
+
+@app.route("/api/documents/<int:doc_id>/resummarize", methods=["POST"])
+def api_resummarize(doc_id):
+    return jsonify(resummarize_document(doc_id))
+
+
+@app.route("/api/documents/<int:doc_id>/project", methods=["PUT"])
+def api_document_assign_project(doc_id):
+    data = request.json or {}
+    return jsonify(assign_document_project(doc_id, data.get("project_id")))
+
 
 @app.route("/api/documents/upload", methods=["POST"])
 def api_upload_document():
@@ -203,12 +251,14 @@ def api_upload_document():
 
     category = request.form.get("category", "Other")
     doc_name = request.form.get("name", file.filename)
+    project_id_raw = request.form.get("project_id", "")
+    project_id = int(project_id_raw) if project_id_raw.isdigit() else None
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(UPLOAD_DIR, filename)
     file.save(filepath)
 
-    result = ingest_document(filepath, doc_name, category)
+    result = ingest_document(filepath, doc_name, category, project_id=project_id)
     return jsonify(result)
 
 @app.route("/api/documents/delete", methods=["POST"])
@@ -222,6 +272,45 @@ def api_delete_document():
 
 
 # ---------------------------------------------------------------------------
+# Routes — Projects
+# ---------------------------------------------------------------------------
+
+@app.route("/api/projects")
+def api_projects():
+    return jsonify(get_projects())
+
+@app.route("/api/projects", methods=["POST"])
+def api_projects_create():
+    data = request.json or {}
+    if not data.get("name", "").strip():
+        return jsonify({"status": "error", "message": "Project name required"}), 400
+    return jsonify(create_project(data))
+
+@app.route("/api/projects/<int:project_id>")
+def api_project_detail(project_id):
+    p = get_project(project_id)
+    if not p:
+        return jsonify({"status": "error", "message": "Not found"}), 404
+    return jsonify(p)
+
+@app.route("/api/projects/<int:project_id>", methods=["PUT"])
+def api_project_update(project_id):
+    return jsonify(update_project(project_id, request.json or {}))
+
+@app.route("/api/projects/<int:project_id>", methods=["DELETE"])
+def api_project_delete(project_id):
+    return jsonify(delete_project(project_id))
+
+@app.route("/api/projects/<int:project_id>/timeline")
+def api_project_timeline(project_id):
+    types = request.args.get("types", "")
+    type_list = [t.strip() for t in types.split(",") if t.strip()] or None
+    start_date = request.args.get("start") or None
+    end_date = request.args.get("end") or None
+    return jsonify(get_project_timeline(project_id, type_list, start_date, end_date))
+
+
+# ---------------------------------------------------------------------------
 # Routes — PRL Query (5-Layer RAG Pipeline)
 # ---------------------------------------------------------------------------
 
@@ -230,6 +319,7 @@ def api_ask():
     """PRL Decision Engine — Full 5-layer reasoning pipeline."""
     data = request.json
     question = data.get("question", "").strip()
+    project_id = data.get("project_id")
 
     if not question:
         return jsonify({
@@ -241,7 +331,7 @@ def api_ask():
             "decision_id": None,
         })
 
-    result = query_prl(question)
+    result = query_prl(question, project_id=project_id)
     return jsonify(result)
 
 @app.route("/api/search", methods=["POST"])

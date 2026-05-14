@@ -102,9 +102,37 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (decision_id) REFERENCES decisions(id)
             );
+
+            CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT DEFAULT '',
+                status TEXT DEFAULT 'active',
+                owner TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                category TEXT DEFAULT 'Other',
+                project_id INTEGER,
+                chunk_count INTEGER DEFAULT 0,
+                summary_status TEXT DEFAULT 'pending',
+                summary_json TEXT DEFAULT '',
+                summary_text TEXT DEFAULT '',
+                summary_error TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now')),
+                summarized_at TEXT,
+                FOREIGN KEY (project_id) REFERENCES projects(id)
+            );
         """)
 
-        # Seed default data if tables are empty
+        _add_column_if_missing(conn, "schedule_events", "project_id", "INTEGER")
+        _add_column_if_missing(conn, "emails",          "project_id", "INTEGER")
+        _add_column_if_missing(conn, "decisions",       "project_id", "INTEGER")
+
         if conn.execute("SELECT COUNT(*) FROM schedule_events").fetchone()[0] == 0:
             _seed_schedule(conn)
         if conn.execute("SELECT COUNT(*) FROM emails").fetchone()[0] == 0:
@@ -115,6 +143,13 @@ def init_db():
             _seed_governance(conn)
 
     logger.info(f"Database initialized at {DB_PATH}")
+
+
+def _add_column_if_missing(conn, table: str, column: str, definition: str):
+    """SQLite-safe ALTER TABLE ADD COLUMN that skips if column already exists."""
+    cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def _seed_schedule(conn):
@@ -363,16 +398,18 @@ def get_schedule():
 def create_schedule_event(data):
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO schedule_events (date, title, priority, description, status) VALUES (?, ?, ?, ?, ?)",
-            (data["date"], data["title"], data.get("priority", "medium"), data.get("description", ""), data.get("status", "upcoming")),
+            "INSERT INTO schedule_events (date, title, priority, description, status, project_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (data["date"], data["title"], data.get("priority", "medium"), data.get("description", ""),
+             data.get("status", "upcoming"), data.get("project_id")),
         )
         return {"status": "created"}
 
 def update_schedule_event(event_id, data):
     with get_db() as conn:
         conn.execute(
-            "UPDATE schedule_events SET date=?, title=?, priority=?, description=?, status=?, updated_at=datetime('now') WHERE id=?",
-            (data["date"], data["title"], data.get("priority", "medium"), data.get("description", ""), data.get("status", "upcoming"), event_id),
+            "UPDATE schedule_events SET date=?, title=?, priority=?, description=?, status=?, project_id=?, updated_at=datetime('now') WHERE id=?",
+            (data["date"], data["title"], data.get("priority", "medium"), data.get("description", ""),
+             data.get("status", "upcoming"), data.get("project_id"), event_id),
         )
         return {"status": "updated"}
 
@@ -398,8 +435,9 @@ def get_emails(sent=False):
 def create_email(data):
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO emails (sender, recipients, subject, body, time_label, read, sent) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("PRL User", json.dumps(data.get("to", [])), data.get("subject", ""), data.get("body", ""), "just now", 1, 1),
+            "INSERT INTO emails (sender, recipients, subject, body, time_label, read, sent, project_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ("PRL User", json.dumps(data.get("to", [])), data.get("subject", ""), data.get("body", ""),
+             "just now", 1, 1, data.get("project_id")),
         )
         return {"status": "sent", "timestamp": datetime.utcnow().isoformat()}
 
@@ -448,11 +486,11 @@ def update_governance_item(item_id, data):
 
 
 # --- Decisions (Audit Trail) ---
-def save_decision(question, answer, sources, reasoning_summary, mode, chunks_used):
+def save_decision(question, answer, sources, reasoning_summary, mode, chunks_used, project_id=None):
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO decisions (question, answer, sources, reasoning_summary, mode, chunks_used) VALUES (?, ?, ?, ?, ?, ?)",
-            (question, answer, json.dumps(sources), reasoning_summary, mode, chunks_used),
+            "INSERT INTO decisions (question, answer, sources, reasoning_summary, mode, chunks_used, project_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (question, answer, json.dumps(sources), reasoning_summary, mode, chunks_used, project_id),
         )
         return cursor.lastrowid
 
@@ -508,11 +546,257 @@ def get_dashboard_stats():
         total_decisions = conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
         approved_decisions = conn.execute("SELECT COUNT(*) FROM decisions WHERE feedback_status='approved'").fetchone()[0]
         governance_active = conn.execute("SELECT COUNT(*) FROM governance_items WHERE status='Active'").fetchone()[0]
+        active_projects = conn.execute("SELECT COUNT(*) FROM projects WHERE status='active'").fetchone()[0]
         return {
             "upcoming_events": schedule_count,
             "unread_emails": unread_emails,
             "total_decisions": total_decisions,
             "approved_decisions": approved_decisions,
             "governance_active": governance_active,
+            "active_projects": active_projects,
             "approval_rate": round(approved_decisions / total_decisions * 100, 1) if total_decisions > 0 else 0,
         }
+
+
+# --- Projects ---
+def get_projects():
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT p.*,
+                (SELECT COUNT(*) FROM documents       WHERE project_id = p.id) AS document_count,
+                (SELECT COUNT(*) FROM decisions       WHERE project_id = p.id) AS decision_count,
+                (SELECT COUNT(*) FROM emails          WHERE project_id = p.id) AS email_count,
+                (SELECT COUNT(*) FROM schedule_events WHERE project_id = p.id) AS event_count
+            FROM projects p
+            ORDER BY
+                CASE p.status WHEN 'active' THEN 0 WHEN 'on_hold' THEN 1 WHEN 'closed' THEN 2 ELSE 3 END,
+                p.updated_at DESC
+        """).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_project(project_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM projects WHERE id=?", (project_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def create_project(data):
+    with get_db() as conn:
+        cur = conn.execute(
+            "INSERT INTO projects (name, description, status, owner) VALUES (?, ?, ?, ?)",
+            (data["name"], data.get("description", ""), data.get("status", "active"), data.get("owner", "")),
+        )
+        return {"status": "created", "id": cur.lastrowid}
+
+
+def update_project(project_id, data):
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE projects SET name=?, description=?, status=?, owner=?, updated_at=datetime('now') WHERE id=?",
+            (data["name"], data.get("description", ""), data.get("status", "active"), data.get("owner", ""), project_id),
+        )
+        return {"status": "updated"}
+
+
+def delete_project(project_id):
+    with get_db() as conn:
+        # Unlink associated rows rather than cascade-delete — preserves history
+        conn.execute("UPDATE documents       SET project_id=NULL WHERE project_id=?", (project_id,))
+        conn.execute("UPDATE decisions       SET project_id=NULL WHERE project_id=?", (project_id,))
+        conn.execute("UPDATE emails          SET project_id=NULL WHERE project_id=?", (project_id,))
+        conn.execute("UPDATE schedule_events SET project_id=NULL WHERE project_id=?", (project_id,))
+        conn.execute("DELETE FROM projects WHERE id=?", (project_id,))
+        return {"status": "deleted"}
+
+
+# --- Documents (summary metadata; chunks live in ChromaDB) ---
+def upsert_document_row(name, category, chunk_count, project_id=None):
+    """Insert or update a documents row. Returns the row id."""
+    with get_db() as conn:
+        existing = conn.execute("SELECT id FROM documents WHERE name=?", (name,)).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE documents SET category=?, chunk_count=?, project_id=COALESCE(?, project_id) WHERE id=?",
+                (category, chunk_count, project_id, existing["id"]),
+            )
+            return existing["id"]
+        cur = conn.execute(
+            "INSERT INTO documents (name, category, chunk_count, project_id, summary_status) VALUES (?, ?, ?, ?, 'pending')",
+            (name, category, chunk_count, project_id),
+        )
+        return cur.lastrowid
+
+
+def get_documents_with_summaries():
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT d.*, p.name AS project_name
+            FROM documents d
+            LEFT JOIN projects p ON d.project_id = p.id
+            ORDER BY d.created_at DESC
+        """).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["summary_json"] = json.loads(d["summary_json"]) if d["summary_json"] else {}
+            result.append(d)
+        return result
+
+
+def get_document_by_name(name):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM documents WHERE name=?", (name,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_document(doc_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM documents WHERE id=?", (doc_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["summary_json"] = json.loads(d["summary_json"]) if d["summary_json"] else {}
+        return d
+
+
+def mark_document_processing(doc_id):
+    with get_db() as conn:
+        conn.execute("UPDATE documents SET summary_status='processing' WHERE id=?", (doc_id,))
+
+
+def save_document_summary(doc_id, summary_dict, summary_text):
+    with get_db() as conn:
+        conn.execute("""
+            UPDATE documents
+            SET summary_status='ready', summary_json=?, summary_text=?, summary_error='',
+                summarized_at=datetime('now')
+            WHERE id=?
+        """, (json.dumps(summary_dict), summary_text, doc_id))
+
+
+def mark_document_failed(doc_id, error):
+    with get_db() as conn:
+        conn.execute("UPDATE documents SET summary_status='failed', summary_error=? WHERE id=?", (error, doc_id))
+
+
+def assign_document_project(doc_id, project_id):
+    with get_db() as conn:
+        conn.execute("UPDATE documents SET project_id=? WHERE id=?", (project_id, doc_id))
+        return {"status": "updated"}
+
+
+def delete_document_row(name):
+    """Remove the SQLite documents row when its ChromaDB chunks are deleted."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM documents WHERE name=?", (name,))
+
+
+def get_pending_documents():
+    """Return rows whose summary is pending or failed — used by the backfill worker."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, name, category FROM documents WHERE summary_status IN ('pending', 'failed')"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+# --- Timeline ---
+def get_project_timeline(project_id, event_types=None, start_date=None, end_date=None):
+    """
+    Merge documents, decisions, emails, and schedule events into a single
+    chronological feed for one project. Returns newest-first.
+    """
+    with get_db() as conn:
+        types_filter = set(event_types or ["project", "document", "decision", "email", "schedule_event"])
+        timeline = []
+
+        project = conn.execute("SELECT * FROM projects WHERE id=?", (project_id,)).fetchone()
+        if not project:
+            return []
+
+        if "project" in types_filter:
+            timeline.append({
+                "type": "project",
+                "timestamp": project["created_at"],
+                "title": f"Project created: {project['name']}",
+                "summary": project["description"] or "",
+                "ref_id": project["id"],
+            })
+
+        if "document" in types_filter:
+            for r in conn.execute(
+                "SELECT id, name, category, summary_text, summary_status, created_at "
+                "FROM documents WHERE project_id=? ORDER BY created_at DESC",
+                (project_id,),
+            ).fetchall():
+                timeline.append({
+                    "type": "document",
+                    "timestamp": r["created_at"],
+                    "title": f"Document ingested: {r['name']}",
+                    "summary": r["summary_text"] or f"({r['summary_status']})",
+                    "category": r["category"],
+                    "summary_status": r["summary_status"],
+                    "ref_id": r["id"],
+                })
+
+        if "decision" in types_filter:
+            for r in conn.execute(
+                "SELECT id, question, reasoning_summary, feedback_status, created_at "
+                "FROM decisions WHERE project_id=? ORDER BY created_at DESC",
+                (project_id,),
+            ).fetchall():
+                timeline.append({
+                    "type": "decision",
+                    "timestamp": r["created_at"],
+                    "title": f"PRL decision: {r['question'][:120]}",
+                    "summary": r["reasoning_summary"] or "",
+                    "feedback_status": r["feedback_status"],
+                    "ref_id": r["id"],
+                })
+
+        if "email" in types_filter:
+            for r in conn.execute(
+                "SELECT id, subject, sender, recipients, sent, created_at "
+                "FROM emails WHERE project_id=? ORDER BY created_at DESC",
+                (project_id,),
+            ).fetchall():
+                direction = "Sent" if r["sent"] else "Received"
+                timeline.append({
+                    "type": "email",
+                    "timestamp": r["created_at"],
+                    "title": f"{direction}: {r['subject']}",
+                    "summary": f"From {r['sender']}",
+                    "ref_id": r["id"],
+                })
+
+        if "schedule_event" in types_filter:
+            for r in conn.execute(
+                "SELECT id, date, title, priority, description, status "
+                "FROM schedule_events WHERE project_id=? ORDER BY date DESC",
+                (project_id,),
+            ).fetchall():
+                timeline.append({
+                    "type": "schedule_event",
+                    "timestamp": r["date"],
+                    "title": f"Scheduled: {r['title']}",
+                    "summary": r["description"][:200] if r["description"] else "",
+                    "priority": r["priority"],
+                    "status": r["status"],
+                    "ref_id": r["id"],
+                })
+
+        timeline.sort(key=lambda x: x["timestamp"] or "", reverse=True)
+
+        if start_date:
+            timeline = [t for t in timeline if (t["timestamp"] or "") >= start_date]
+        if end_date:
+            timeline = [t for t in timeline if (t["timestamp"] or "") <= end_date]
+
+        return timeline
+
+
+# --- Project assignment helpers (used when creating decisions/emails/events) ---
+def assign_decision_project(decision_id, project_id):
+    with get_db() as conn:
+        conn.execute("UPDATE decisions SET project_id=? WHERE id=?", (project_id, decision_id))

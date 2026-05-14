@@ -287,6 +287,57 @@
             .tab-btn .tab-icon{display:none}
             .main-content{padding:16px}
         }
+        /* Projects */
+        .project-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;margin-bottom:10px}
+        .project-card:hover{border-color:var(--gold-300);box-shadow:var(--shadow);transform:translateY(-1px)}
+        .project-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+        .project-card-name{font-weight:700;color:var(--navy-800);font-size:15px}
+        .project-card-desc{font-size:12px;color:var(--gray-600);line-height:1.5;margin-top:2px}
+        .project-card-stats{display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--gray-500);font-family:var(--font-mono)}
+        .project-card-stats span strong{color:var(--navy-700);font-weight:700}
+        .badge-active{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+        .badge-on_hold{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
+        .badge-closed{background:var(--gray-100);color:var(--gray-700);border:1px solid var(--gray-300)}
+        .badge-archived{background:var(--gray-50);color:var(--gray-500);border:1px solid var(--gray-200)}
+
+        /* Filter chips */
+        .filter-chip{background:var(--gray-100);border:1px solid var(--gray-300);border-radius:999px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--gray-700);cursor:pointer;transition:all .15s}
+        .filter-chip:hover{background:var(--gray-200)}
+        .filter-chip.active{background:var(--navy-700);color:var(--white);border-color:var(--navy-700)}
+
+        /* Timeline */
+        .timeline{position:relative;padding-left:24px;margin-top:8px}
+        .timeline::before{content:'';position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:var(--gray-200)}
+        .timeline-day{font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 6px -24px;padding-left:24px;background:var(--white)}
+        .timeline-item{position:relative;padding:10px 12px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:8px}
+        .timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--gold-400);border:2px solid var(--white);box-shadow:0 0 0 1px var(--gold-400)}
+        .timeline-item.t-project::before{background:var(--navy-600);box-shadow:0 0 0 1px var(--navy-600)}
+        .timeline-item.t-document::before{background:var(--info);box-shadow:0 0 0 1px var(--info)}
+        .timeline-item.t-decision::before{background:var(--gold-500);box-shadow:0 0 0 1px var(--gold-500)}
+        .timeline-item.t-email::before{background:var(--success);box-shadow:0 0 0 1px var(--success)}
+        .timeline-item.t-schedule_event::before{background:var(--warning);box-shadow:0 0 0 1px var(--warning)}
+        .timeline-item-title{font-weight:600;font-size:13px;color:var(--navy-800);margin-bottom:3px}
+        .timeline-item-summary{font-size:12px;color:var(--gray-600);line-height:1.5}
+        .timeline-item-time{font-size:10px;color:var(--gray-400);font-family:var(--font-mono);margin-top:4px}
+
+        /* Document summary card */
+        .summary-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+        .summary-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+        .summary-headline{font-weight:700;font-size:14px;color:var(--navy-800)}
+        .summary-meta{font-size:11px;color:var(--gray-500);font-family:var(--font-mono);margin-top:2px}
+        .summary-paragraph{font-size:12px;color:var(--gray-700);line-height:1.55;margin:8px 0}
+        .summary-section{margin-top:8px}
+        .summary-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-500);margin-bottom:4px}
+        .summary-chips{display:flex;flex-wrap:wrap;gap:5px}
+        .summary-chip{background:var(--navy-50);color:var(--navy-700);border:1px solid var(--navy-100);border-radius:4px;padding:3px 8px;font-size:11px}
+        .summary-chip.risk{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-border)}
+        .summary-chip.action{background:var(--gold-50);color:var(--gold-600);border-color:var(--gold-200)}
+        .summary-chip.date{background:var(--info-bg);color:var(--info);border-color:var(--info-border);font-family:var(--font-mono)}
+        .summary-status{font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:4px;letter-spacing:.06em}
+        .summary-status.pending{background:var(--gray-100);color:var(--gray-600)}
+        .summary-status.processing{background:var(--info-bg);color:var(--info)}
+        .summary-status.ready{background:var(--success-bg);color:var(--success)}
+        .summary-status.failed{background:var(--danger-bg);color:var(--danger)}
     </style>
 </head>
 <body>
@@ -312,6 +363,7 @@
     <!-- TABS -->
     <div class="tab-bar">
         <button class="tab-btn active" data-tab="dashboard"><span class="tab-icon">📊</span> DASHBOARD</button>
+        <button class="tab-btn" data-tab="projects"><span class="tab-icon">🗂️</span> PROJECTS <span class="tab-badge" id="projects-badge">0</span></button>
         <button class="tab-btn" data-tab="ask"><span class="tab-icon">🧠</span> ASK PRL</button>
         <button class="tab-btn" data-tab="kb"><span class="tab-icon">📚</span> KNOWLEDGE BASE <span class="tab-badge" id="kb-badge">0</span></button>
         <button class="tab-btn" data-tab="schedule"><span class="tab-icon">📅</span> SCHEDULE</button>
@@ -369,7 +421,8 @@
                             <em>Example: "Can a technician take LWOP after sick leave exhaustion under Article 33?"</em>
                         </div>
                     </div>
-                    <div class="ask-input-row">
+                    <div class="ask-input-row" style="flex-wrap:wrap;gap:8px">
+                        <select class="form-input" id="ask-project" style="flex:0 0 auto;max-width:240px"></select>
                         <input class="ask-input" id="ask-input" placeholder="Ask a policy question..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQuestion()}">
                         <button class="btn btn-gold" id="ask-send-btn" onclick="sendQuestion()">ASK PRL</button>
                     </div>
@@ -396,6 +449,7 @@
                     <div class="form-row"><label>FILE</label><span id="upload-filename" style="font-size:13px;color:var(--gold-600);font-weight:600"></span></div>
                     <div class="form-row"><label>NAME</label><input class="form-text" id="upload-name" placeholder="Document display name"></div>
                     <div class="form-row"><label>CATEGORY</label><select class="form-select" id="upload-category"></select></div>
+                    <div class="form-row"><label>PROJECT</label><select class="form-select" id="upload-project"></select></div>
                     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
                         <button class="btn btn-secondary" onclick="cancelUpload()">Cancel</button>
                         <button class="btn btn-gold" onclick="submitUpload()">Ingest Document</button>
@@ -456,6 +510,51 @@
                     its current status and applicability to your operational environment.
                 </p>
                 <div class="gov-grid" id="governance-list"></div>
+            </div>
+
+            <!-- PROJECTS -->
+            <div class="tab-panel" id="panel-projects">
+                <div class="section-header">
+                    <h2 class="section-title">Projects</h2>
+                    <div style="display:flex;gap:10px;align-items:center">
+                        <span class="section-meta" id="projects-count"></span>
+                        <button class="btn btn-primary" onclick="openProjectModal()">+ New Project</button>
+                    </div>
+                </div>
+                <p style="color:var(--gray-500);font-size:13px;margin-bottom:18px;line-height:1.6">
+                    Group related documents, decisions, emails, and schedule events into a project. Every upload is
+                    automatically summarized and added to the project timeline so you can trace what happened, when, and why.
+                </p>
+
+                <!-- Project list view -->
+                <div id="projects-list-view">
+                    <div id="projects-list"></div>
+                </div>
+
+                <!-- Project detail view -->
+                <div id="project-detail-view" style="display:none">
+                    <button class="btn btn-secondary" style="margin-bottom:14px" onclick="closeProjectDetail()">← Back to projects</button>
+                    <div class="card" id="project-detail-header"></div>
+
+                    <div class="card" style="margin-top:14px">
+                        <div class="card-header">
+                            <span class="card-title">Timeline</span>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap" id="timeline-filters">
+                                <button class="filter-chip active" data-type="all">All</button>
+                                <button class="filter-chip" data-type="document">📚 Documents</button>
+                                <button class="filter-chip" data-type="decision">🧠 Decisions</button>
+                                <button class="filter-chip" data-type="email">✉️ Emails</button>
+                                <button class="filter-chip" data-type="schedule_event">📅 Events</button>
+                            </div>
+                        </div>
+                        <div id="project-timeline"></div>
+                    </div>
+
+                    <div class="card" style="margin-top:14px">
+                        <div class="card-header"><span class="card-title">Documents in this project</span></div>
+                        <div id="project-documents"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- AUDIT TRAIL -->
@@ -527,6 +626,7 @@
                 <div class="modal-header"><span class="modal-title">Compose Email</span><button class="modal-close" onclick="closeCompose()">&times;</button></div>
                 <div class="modal-body">
                     <div class="form-group"><label class="form-label">To:</label><div class="recipient-grid" id="recipient-grid"></div></div>
+                    <div class="form-group"><label class="form-label">Project:</label><select class="form-input" id="compose-project"></select></div>
                     <div class="form-group"><label class="form-label">Subject:</label><input class="form-input" id="compose-subject" placeholder="Enter subject..."></div>
                     <div class="form-group"><label class="form-label">Body:</label><textarea class="form-textarea" id="compose-body" placeholder="Compose message..."></textarea></div>
                     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeCompose()">Cancel</button><button class="btn btn-gold" id="send-btn" onclick="showConfirm()" disabled>Send</button></div>
@@ -551,8 +651,35 @@
                 <div class="form-group"><label class="form-label">Title:</label><input class="form-input" id="event-title" placeholder="Event title..."></div>
                 <div class="form-group"><label class="form-label">Date:</label><input class="form-input" id="event-date" type="date"></div>
                 <div class="form-group"><label class="form-label">Priority:</label><select class="form-input" id="event-priority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
+                <div class="form-group"><label class="form-label">Project:</label><select class="form-input" id="event-project"></select></div>
                 <div class="form-group"><label class="form-label">Description:</label><textarea class="form-textarea" id="event-desc" placeholder="Optional description..." style="min-height:80px"></textarea></div>
                 <div class="modal-actions"><button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button><button class="btn btn-gold" onclick="saveEvent()">Save Event</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROJECT MODAL -->
+    <div class="modal-overlay" id="project-modal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title" id="project-modal-title">New Project</span><button class="modal-close" onclick="closeProjectModal()">&times;</button></div>
+            <div class="modal-body">
+                <input type="hidden" id="project-id">
+                <div class="form-group"><label class="form-label">Name:</label><input class="form-input" id="project-name" placeholder="e.g. Sector 7 TRACON BWS Q3"></div>
+                <div class="form-group"><label class="form-label">Description:</label><textarea class="form-textarea" id="project-desc" placeholder="Optional summary of the case..." style="min-height:80px"></textarea></div>
+                <div class="form-group"><label class="form-label">Owner:</label><input class="form-input" id="project-owner" placeholder="Responsible manager"></div>
+                <div class="form-group"><label class="form-label">Status:</label>
+                    <select class="form-input" id="project-status">
+                        <option value="active">Active</option>
+                        <option value="on_hold">On Hold</option>
+                        <option value="closed">Closed</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-danger" id="project-delete-btn" style="margin-right:auto;display:none" onclick="deleteProjectFromModal()">Delete</button>
+                    <button class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
+                    <button class="btn btn-gold" onclick="saveProject()">Save</button>
+                </div>
             </div>
         </div>
     </div>
@@ -580,6 +707,7 @@ function switchTab(id){
     if(id==='kb')loadDocuments();
     if(id==='decisions')loadDecisions();
     if(id==='dashboard')loadDashboard();
+    if(id==='projects'){closeProjectDetail();loadProjects()}
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
@@ -600,6 +728,7 @@ async function loadDashboard(){
             <div class="stat-card"><div class="stat-value">${d.total_chunks}</div><div class="stat-label">Policy Chunks</div></div>
             <div class="stat-card gold"><div class="stat-value">${d.total_decisions}</div><div class="stat-label">Decisions</div></div>
             <div class="stat-card"><div class="stat-value">${d.approval_rate}%</div><div class="stat-label">Approval Rate</div></div>
+            <div class="stat-card"><div class="stat-value">${d.active_projects||0}</div><div class="stat-label">Active Projects</div></div>
             <div class="stat-card"><div class="stat-value">${d.upcoming_events}</div><div class="stat-label">Upcoming Events</div></div>
             <div class="stat-card"><div class="stat-value">${d.unread_emails}</div><div class="stat-label">Unread Emails</div></div>
         `;
@@ -635,14 +764,16 @@ async function loadSchedule(){
     `).join('');
 }
 
-function openAddEvent(){document.getElementById('event-modal').classList.add('open')}
+function openAddEvent(){document.getElementById('event-project').value='';document.getElementById('event-modal').classList.add('open')}
 function closeEventModal(){document.getElementById('event-modal').classList.remove('open')}
 async function saveEvent(){
+    const pid=document.getElementById('event-project').value;
     const data={
         title:document.getElementById('event-title').value,
         date:document.getElementById('event-date').value,
         priority:document.getElementById('event-priority').value,
-        description:document.getElementById('event-desc').value
+        description:document.getElementById('event-desc').value,
+        project_id:pid?parseInt(pid,10):null
     };
     if(!data.title||!data.date){showToast('Title and date are required','error');return}
     await fetch('/api/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -723,17 +854,54 @@ async function loadDocuments(){
     if(d.documents.length===0){
         list.innerHTML='<div class="empty-state"><div class="icon">📄</div><div class="msg">No documents ingested yet. Upload policy documents above.</div></div>';
     }else{
-        const ci={'CBA / Bargaining':'📘','HRPM':'📗','Management Guide':'📙','Memo':'📋','FAA Order':'📁','Local Procedure':'📂','Technical Bulletin':'📟','HR Guidance':'👤','Labor Relations':'🤝','Other':'📄'};
-        list.innerHTML=d.documents.map(doc=>`
-            <div class="kb-doc-row">
-                <div class="kb-doc-info">
-                    <span class="kb-doc-icon">${ci[doc.category]||'📄'}</span>
-                    <div><div class="kb-doc-name">${doc.name}</div><div class="kb-doc-meta">${doc.category} · ${doc.chunks} chunks</div></div>
-                </div>
-                <button class="kb-doc-delete" onclick="deleteDoc('${doc.name.replace(/'/g,"\\'")}')">Remove</button>
-            </div>
-        `).join('');
+        list.innerHTML=d.documents.map(renderDocumentSummary).join('');
     }
+}
+
+function renderDocumentSummary(doc){
+    const ci={'CBA / Bargaining':'📘','HRPM':'📗','Management Guide':'📙','Memo':'📋','FAA Order':'📁','Local Procedure':'📂','Technical Bulletin':'📟','HR Guidance':'👤','Labor Relations':'🤝','Other':'📄'};
+    const s=doc.summary_json||{};
+    const status=doc.summary_status||'pending';
+    const safeName=doc.name.replace(/'/g,"\\'");
+    return `<div class="summary-card">
+        <div class="summary-card-head">
+            <div style="flex:1;min-width:0">
+                <div class="summary-headline">${ci[doc.category]||'📄'} ${escHtml(s.headline||doc.name)}</div>
+                <div class="summary-meta">${escHtml(doc.category)} · ${doc.chunks} chunks${doc.project_name?' · 🗂 '+escHtml(doc.project_name):''}${s.document_type?' · '+escHtml(s.document_type):''}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                <span class="summary-status ${status}">${status}</span>
+                ${doc.id?`<button class="kb-doc-delete" onclick="resummarizeDoc(${doc.id})">↻ Resummarize</button>`:''}
+                <button class="kb-doc-delete" onclick="deleteDoc('${safeName}')">Remove</button>
+            </div>
+        </div>
+        ${status==='ready'?renderSummaryBody(s):status==='failed'?`<div style="color:var(--danger);font-size:12px">Summary failed: ${escHtml(doc.summary_error||'unknown error')}</div>`:`<div style="color:var(--gray-500);font-size:12px;font-style:italic">Summary ${status}…</div>`}
+    </div>`;
+}
+
+function renderSummaryBody(s){
+    let html='';
+    if(s.summary_paragraph)html+=`<div class="summary-paragraph">${escHtml(s.summary_paragraph)}</div>`;
+    const sections=[
+        ['policy_citations','Citations','summary-chip'],
+        ['key_dates','Key Dates','summary-chip date'],
+        ['parties_mentioned','Parties','summary-chip'],
+        ['action_items','Action Items','summary-chip action'],
+        ['risk_flags','Risk Flags','summary-chip risk'],
+    ];
+    sections.forEach(([key,label,chipCls])=>{
+        const arr=s[key]||[];
+        if(arr.length){
+            html+=`<div class="summary-section"><div class="summary-section-label">${label}</div><div class="summary-chips">${arr.map(v=>`<span class="${chipCls}">${escHtml(v)}</span>`).join('')}</div></div>`;
+        }
+    });
+    return html;
+}
+
+async function resummarizeDoc(docId){
+    await fetch('/api/documents/'+docId+'/resummarize',{method:'POST'});
+    showToast('Resummarization queued','info');
+    setTimeout(loadDocuments, 1500);
 }
 async function deleteDoc(name){
     if(!confirm('Remove "'+name+'" from knowledge base?'))return;
@@ -760,6 +928,8 @@ async function submitUpload(){
     form.append('file',pendingFile);
     form.append('name',document.getElementById('upload-name').value||pendingFile.name);
     form.append('category',document.getElementById('upload-category').value);
+    const pid=document.getElementById('upload-project').value;
+    if(pid)form.append('project_id',pid);
     const bar=document.getElementById('upload-progress');
     const fill=document.getElementById('upload-progress-fill');
     bar.classList.add('active');fill.style.width='30%';
@@ -792,7 +962,8 @@ async function sendQuestion(){
     msgs.innerHTML+=`<div class="thinking-indicator" id="thinking"><div class="spinner"></div>PRL is reasoning across your policy documents...</div>`;
     msgs.scrollTop=msgs.scrollHeight;
     try{
-        const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+        const pid=document.getElementById('ask-project').value;
+        const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,project_id:pid?parseInt(pid,10):null})});
         const d=await r.json();
         const el=document.getElementById('thinking');if(el)el.remove();
         let html=`<div class="ask-msg assistant">${formatAnswer(d.answer)}`;
@@ -866,6 +1037,7 @@ function openCompose(){
     document.querySelectorAll('.recipient-btn').forEach(b=>b.classList.remove('selected'));
     document.getElementById('compose-subject').value='';
     document.getElementById('compose-body').value='';
+    document.getElementById('compose-project').value='';
     document.getElementById('send-btn').disabled=true;
     document.getElementById('compose-form-view').style.display='block';
     document.getElementById('compose-confirm-view').style.display='none';
@@ -882,10 +1054,12 @@ function hideConfirm(){
     document.getElementById('compose-confirm-view').style.display='none';
 }
 async function confirmSend(){
+    const pid=document.getElementById('compose-project').value;
     await fetch('/api/emails/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         to:[...selectedRecipients],
         subject:document.getElementById('compose-subject').value,
-        body:document.getElementById('compose-body').value
+        body:document.getElementById('compose-body').value,
+        project_id:pid?parseInt(pid,10):null
     })});
     closeCompose();showToast('Email sent successfully');loadEmails();
 }
@@ -902,8 +1076,177 @@ async function checkHealth(){
     }
 }
 
+// === PROJECTS ===
+let projectsCache=[];
+let currentProjectId=null;
+let timelineFilter='all';
+
+async function loadProjects(){
+    const r=await fetch('/api/projects');
+    projectsCache=await r.json();
+    document.getElementById('projects-badge').textContent=projectsCache.length;
+    document.getElementById('projects-count').textContent=projectsCache.length+' total';
+    const list=document.getElementById('projects-list');
+    if(projectsCache.length===0){
+        list.innerHTML='<div class="empty-state"><div class="icon">🗂️</div><div class="msg">No projects yet. Click "+ New Project" to create your first case file.</div></div>';
+    }else{
+        list.innerHTML=projectsCache.map(p=>`
+            <div class="project-card" onclick="openProjectDetail(${p.id})">
+                <div class="project-card-header">
+                    <div style="flex:1;min-width:0">
+                        <div class="project-card-name">${escHtml(p.name)}</div>
+                        ${p.description?`<div class="project-card-desc">${escHtml(p.description)}</div>`:''}
+                    </div>
+                    <span class="badge badge-${p.status}" style="flex-shrink:0">${p.status.replace('_',' ')}</span>
+                </div>
+                <div class="project-card-stats">
+                    <span>📚 <strong>${p.document_count}</strong> docs</span>
+                    <span>🧠 <strong>${p.decision_count}</strong> decisions</span>
+                    <span>✉️ <strong>${p.email_count}</strong> emails</span>
+                    <span>📅 <strong>${p.event_count}</strong> events</span>
+                    ${p.owner?`<span style="margin-left:auto">👤 ${escHtml(p.owner)}</span>`:''}
+                </div>
+            </div>
+        `).join('');
+    }
+    refreshProjectSelectors();
+}
+
+function refreshProjectSelectors(){
+    const opts='<option value="">— No project —</option>'+
+        projectsCache.filter(p=>p.status==='active').map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+    ['upload-project','compose-project','event-project','ask-project'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){const cur=el.value;el.innerHTML=opts;el.value=cur}
+    });
+}
+
+function openProjectModal(project){
+    const isEdit=!!project;
+    document.getElementById('project-modal-title').textContent=isEdit?'Edit Project':'New Project';
+    document.getElementById('project-id').value=isEdit?project.id:'';
+    document.getElementById('project-name').value=isEdit?project.name:'';
+    document.getElementById('project-desc').value=isEdit?project.description||'':'';
+    document.getElementById('project-owner').value=isEdit?project.owner||'':'';
+    document.getElementById('project-status').value=isEdit?project.status:'active';
+    document.getElementById('project-delete-btn').style.display=isEdit?'inline-block':'none';
+    document.getElementById('project-modal').classList.add('open');
+}
+function closeProjectModal(){document.getElementById('project-modal').classList.remove('open')}
+
+async function saveProject(){
+    const id=document.getElementById('project-id').value;
+    const data={
+        name:document.getElementById('project-name').value.trim(),
+        description:document.getElementById('project-desc').value,
+        owner:document.getElementById('project-owner').value,
+        status:document.getElementById('project-status').value
+    };
+    if(!data.name){showToast('Project name is required','error');return}
+    const url=id?'/api/projects/'+id:'/api/projects';
+    const method=id?'PUT':'POST';
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await r.json();
+    closeProjectModal();
+    showToast(id?'Project updated':'Project created');
+    await loadProjects();
+    if(id&&currentProjectId==parseInt(id,10))openProjectDetail(parseInt(id,10));
+}
+
+async function deleteProjectFromModal(){
+    const id=document.getElementById('project-id').value;
+    if(!id||!confirm('Delete this project? Documents, decisions, and other artifacts will be unlinked but kept.'))return;
+    await fetch('/api/projects/'+id,{method:'DELETE'});
+    closeProjectModal();showToast('Project deleted','info');closeProjectDetail();loadProjects();
+}
+
+async function openProjectDetail(id){
+    currentProjectId=id;
+    timelineFilter='all';
+    document.querySelectorAll('#timeline-filters .filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.type==='all'));
+    document.getElementById('projects-list-view').style.display='none';
+    document.getElementById('project-detail-view').style.display='block';
+    const p=projectsCache.find(x=>x.id===id);
+    if(p){
+        document.getElementById('project-detail-header').innerHTML=`
+            <div class="card-header">
+                <div>
+                    <span class="card-title">${escHtml(p.name)}</span>
+                    <span class="badge badge-${p.status}" style="margin-left:10px">${p.status.replace('_',' ')}</span>
+                </div>
+                <button class="btn btn-secondary" onclick='openProjectModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Edit</button>
+            </div>
+            ${p.description?`<p style="color:var(--gray-600);font-size:13px;line-height:1.6;margin-top:8px">${escHtml(p.description)}</p>`:''}
+            <div class="project-card-stats" style="margin-top:12px">
+                <span>📚 <strong>${p.document_count}</strong> documents</span>
+                <span>🧠 <strong>${p.decision_count}</strong> decisions</span>
+                <span>✉️ <strong>${p.email_count}</strong> emails</span>
+                <span>📅 <strong>${p.event_count}</strong> events</span>
+                ${p.owner?`<span style="margin-left:auto">👤 ${escHtml(p.owner)}</span>`:''}
+            </div>
+        `;
+    }
+    await loadProjectTimeline();
+    await loadProjectDocuments();
+}
+
+function closeProjectDetail(){
+    currentProjectId=null;
+    document.getElementById('projects-list-view').style.display='block';
+    document.getElementById('project-detail-view').style.display='none';
+}
+
+async function loadProjectTimeline(){
+    if(!currentProjectId)return;
+    let url='/api/projects/'+currentProjectId+'/timeline';
+    if(timelineFilter!=='all')url+='?types='+timelineFilter;
+    const r=await fetch(url);
+    const items=await r.json();
+    const container=document.getElementById('project-timeline');
+    if(items.length===0){
+        container.innerHTML='<div class="empty-state"><div class="icon">📭</div><div class="msg">No activity in this project yet.</div></div>';
+        return;
+    }
+    const icons={project:'🗂',document:'📚',decision:'🧠',email:'✉️',schedule_event:'📅'};
+    let html='<div class="timeline">';
+    let lastDay='';
+    items.forEach(it=>{
+        const day=(it.timestamp||'').slice(0,10);
+        if(day!==lastDay){html+=`<div class="timeline-day">${day||'—'}</div>`;lastDay=day}
+        html+=`<div class="timeline-item t-${it.type}">
+            <div class="timeline-item-title">${icons[it.type]||'•'} ${escHtml(it.title)}</div>
+            ${it.summary?`<div class="timeline-item-summary">${escHtml(it.summary)}</div>`:''}
+            <div class="timeline-item-time">${escHtml(it.timestamp||'')}</div>
+        </div>`;
+    });
+    html+='</div>';
+    container.innerHTML=html;
+}
+
+document.querySelectorAll('#timeline-filters .filter-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+        document.querySelectorAll('#timeline-filters .filter-chip').forEach(c=>c.classList.remove('active'));
+        chip.classList.add('active');
+        timelineFilter=chip.dataset.type;
+        loadProjectTimeline();
+    });
+});
+
+async function loadProjectDocuments(){
+    if(!currentProjectId)return;
+    const r=await fetch('/api/documents');
+    const d=await r.json();
+    const docs=d.documents.filter(doc=>doc.project_id===currentProjectId);
+    const el=document.getElementById('project-documents');
+    if(docs.length===0){
+        el.innerHTML='<div class="empty-state"><div class="icon">📄</div><div class="msg">No documents assigned to this project yet. Upload from the Knowledge Base tab and select this project.</div></div>';
+    }else{
+        el.innerHTML=docs.map(renderDocumentSummary).join('');
+    }
+}
+
 // === INIT ===
-loadDashboard();loadSchedule();loadEmails();loadLetters();loadGovernance();loadCategories();loadRecipients();loadDocuments();checkHealth();
+loadDashboard();loadSchedule();loadEmails();loadLetters();loadGovernance();loadCategories();loadRecipients();loadDocuments();loadProjects();checkHealth();
 </script>
 </body>
 </html>

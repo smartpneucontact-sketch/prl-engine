@@ -655,24 +655,7 @@ def query_prl(question: str, top_k: int = TOP_K, project_id: int = None) -> dict
     # Layer 3 — Retrieval
     results = search_policies(question, top_k=top_k)
 
-    if not results:
-        return {
-            "answer": "**NO POLICY DOCUMENTS AVAILABLE**\n\n"
-                      "No policy documents have been ingested into the knowledge base yet.\n\n"
-                      "To enable policy reasoning:\n"
-                      "1. Go to the **Knowledge Base** tab\n"
-                      "2. Upload your policy documents (PDF, DOCX, TXT)\n"
-                      "3. Return here and ask your question again\n\n"
-                      "**Recommended starting documents:** CBA, HRPM LWS-8.14, relevant FAA Orders, "
-                      "management guides, and local procedures.",
-            "sources": [],
-            "mode": "no_documents",
-            "reasoning_summary": "",
-            "management_function": intent["management_function"],
-            "decision_id": None,
-        }
-
-    # Layer 3 — Build context from retrieved chunks
+    # Layer 3 — Build context from retrieved chunks (may be empty)
     context_parts = []
     sources_used = []
     for i, r in enumerate(results):
@@ -689,25 +672,51 @@ def query_prl(question: str, top_k: int = TOP_K, project_id: int = None) -> dict
             })
 
     context_block = "\n\n---\n\n".join(context_parts)
+    has_context = bool(results)
+    mode_tag = "rag" if has_context else "general"
 
-    # Layer 4 — Reasoning (Claude call with chain-of-thought)
-    user_message = (
-        f"RETRIEVED POLICY CONTEXT:\n"
-        f"========================\n"
-        f"{context_block}\n\n"
-        f"========================\n\n"
-        f"MANAGEMENT FUNCTION: {intent['management_function']}\n\n"
-        f"MANAGER'S QUESTION:\n{question}\n\n"
-        f"INSTRUCTIONS:\n"
-        f"1. Reason across ALL provided policy sources using chain-of-thought logic.\n"
-        f"2. Cite specific documents, sections, and articles for every claim.\n"
-        f"3. Identify the approval authority for any recommended action.\n"
-        f"4. Flag any risks, grievance exposure, or compliance concerns.\n"
-        f"5. Provide governance-ready recommended action language.\n"
-        f"6. Show your reasoning chain so the manager can follow your logic.\n"
-        f"7. If the context is insufficient, state exactly what is missing and what additional policy source is needed.\n"
-        f"8. If the question is ambiguous, ask a clarifying question before forcing an answer."
-    )
+    # Layer 4 — Reasoning (Claude call). When context is empty, Claude can still
+    # answer questions about the PRL Engine itself (using the APP ENVIRONMENT
+    # section in its system prompt) or honestly state what's needed for policy
+    # questions instead of refusing to engage.
+    if has_context:
+        user_message = (
+            f"RETRIEVED POLICY CONTEXT:\n"
+            f"========================\n"
+            f"{context_block}\n\n"
+            f"========================\n\n"
+            f"MANAGEMENT FUNCTION: {intent['management_function']}\n\n"
+            f"MANAGER'S QUESTION:\n{question}\n\n"
+            f"INSTRUCTIONS:\n"
+            f"1. Reason across ALL provided policy sources using chain-of-thought logic.\n"
+            f"2. Cite specific documents, sections, and articles for every claim.\n"
+            f"3. Identify the approval authority for any recommended action.\n"
+            f"4. Flag any risks, grievance exposure, or compliance concerns.\n"
+            f"5. Provide governance-ready recommended action language.\n"
+            f"6. Show your reasoning chain so the manager can follow your logic.\n"
+            f"7. If the context is insufficient, state exactly what is missing and what additional policy source is needed.\n"
+            f"8. If the question is ambiguous, ask a clarifying question before forcing an answer."
+        )
+    else:
+        user_message = (
+            f"NO POLICY DOCUMENTS WERE RETRIEVED for this query. The Knowledge Base may be empty, "
+            f"or no ingested document matched.\n\n"
+            f"MANAGEMENT FUNCTION: {intent['management_function']}\n\n"
+            f"MANAGER'S QUESTION:\n{question}\n\n"
+            f"INSTRUCTIONS:\n"
+            f"1. If this is a META QUESTION about the PRL Engine app itself "
+            f"(what it does, its features, tabs, capabilities, how to use it, how to get started, "
+            f"what each tab is for, how Projects/Timeline/Audit Trail work, how to upload documents, "
+            f"how to compose emails, which letter templates exist), answer it directly and helpfully "
+            f"using your knowledge from the APP ENVIRONMENT section of your system prompt. "
+            f"Be welcoming and guide the manager. Skip the citation footer for meta questions.\n"
+            f"2. If this is a POLICY question, do NOT fabricate policy language. State exactly which "
+            f"document(s) and section(s) would be needed (e.g., PASS CBA Article 31, HRPM LWS-8.14) "
+            f"and instruct the manager to upload them via the Knowledge Base tab. Apply built-in "
+            f"policy logic ONLY as general orientation, never as cited authority.\n"
+            f"3. If the question is ambiguous, ask a brief clarifying question.\n"
+            f"4. Always be helpful and route the manager to the right app feature for their next step."
+        )
 
     try:
         model = os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514")
@@ -738,7 +747,7 @@ def query_prl(question: str, top_k: int = TOP_K, project_id: int = None) -> dict
             answer=answer,
             sources=sources_used,
             reasoning_summary=reasoning_summary,
-            mode="rag",
+            mode=mode_tag,
             chunks_used=len(results),
             project_id=project_id,
         )
@@ -748,7 +757,7 @@ def query_prl(question: str, top_k: int = TOP_K, project_id: int = None) -> dict
     return {
         "answer": answer,
         "sources": sources_used,
-        "mode": "rag",
+        "mode": mode_tag,
         "chunks_used": len(results),
         "reasoning_summary": reasoning_summary,
         "management_function": intent["management_function"],

@@ -127,6 +127,16 @@ def init_db():
                 summarized_at TEXT,
                 FOREIGN KEY (project_id) REFERENCES projects(id)
             );
+
+            CREATE TABLE IF NOT EXISTS api_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                kind TEXT NOT NULL,
+                model TEXT NOT NULL,
+                input_tokens INTEGER DEFAULT 0,
+                output_tokens INTEGER DEFAULT 0,
+                cost_usd REAL DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
         """)
 
         _add_column_if_missing(conn, "schedule_events", "project_id", "INTEGER")
@@ -800,3 +810,32 @@ def get_project_timeline(project_id, event_types=None, start_date=None, end_date
 def assign_decision_project(decision_id, project_id):
     with get_db() as conn:
         conn.execute("UPDATE decisions SET project_id=? WHERE id=?", (project_id, decision_id))
+
+
+# --- API usage tracking ---
+def record_api_usage(kind, model, input_tokens, output_tokens, cost_usd):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO api_usage (kind, model, input_tokens, output_tokens, cost_usd) VALUES (?, ?, ?, ?, ?)",
+            (kind, model, input_tokens, output_tokens, cost_usd),
+        )
+
+
+def get_api_usage_summary():
+    with get_db() as conn:
+        row_all = conn.execute(
+            "SELECT COUNT(*) AS calls, COALESCE(SUM(input_tokens),0) AS in_tok, "
+            "COALESCE(SUM(output_tokens),0) AS out_tok, COALESCE(SUM(cost_usd),0) AS cost FROM api_usage"
+        ).fetchone()
+        row_today = conn.execute(
+            "SELECT COUNT(*) AS calls, COALESCE(SUM(cost_usd),0) AS cost FROM api_usage "
+            "WHERE date(created_at) = date('now')"
+        ).fetchone()
+        return {
+            "total_calls": row_all["calls"],
+            "total_input_tokens": row_all["in_tok"],
+            "total_output_tokens": row_all["out_tok"],
+            "total_cost_usd": round(row_all["cost"], 4),
+            "today_calls": row_today["calls"],
+            "today_cost_usd": round(row_today["cost"], 4),
+        }

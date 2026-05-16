@@ -34,6 +34,42 @@ TOP_K = int(os.environ.get("PRL_TOP_K", 8))
 SUMMARY_INPUT_CAP = int(os.environ.get("PRL_SUMMARY_CAP", 12000))
 SUMMARY_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="prl-summarizer")
 
+# Pricing in USD per 1M tokens. Override via PRL_INPUT_COST / PRL_OUTPUT_COST env vars
+# if the deployed model differs from the table below.
+MODEL_PRICING = {
+    "claude-sonnet-4-20250514":   {"input": 3.00,  "output": 15.00},
+    "claude-sonnet-4-5":          {"input": 3.00,  "output": 15.00},
+    "claude-sonnet-4-6":          {"input": 3.00,  "output": 15.00},
+    "claude-opus-4-7":            {"input": 15.00, "output": 75.00},
+    "claude-opus-4-7[1m]":        {"input": 15.00, "output": 75.00},
+    "claude-haiku-4-5-20251001":  {"input": 1.00,  "output": 5.00},
+}
+_DEFAULT_PRICING = {"input": 3.00, "output": 15.00}
+
+
+def _price_call(model: str, input_tokens: int, output_tokens: int) -> float:
+    """USD cost for a single Claude call given its token usage."""
+    in_rate = float(os.environ.get("PRL_INPUT_COST", "") or
+                    MODEL_PRICING.get(model, _DEFAULT_PRICING)["input"])
+    out_rate = float(os.environ.get("PRL_OUTPUT_COST", "") or
+                     MODEL_PRICING.get(model, _DEFAULT_PRICING)["output"])
+    return (input_tokens / 1_000_000) * in_rate + (output_tokens / 1_000_000) * out_rate
+
+
+def _log_api_usage(kind: str, model: str, response):
+    """Extract token usage from an Anthropic response and persist it."""
+    try:
+        usage = getattr(response, "usage", None)
+        if not usage:
+            return
+        in_tok = getattr(usage, "input_tokens", 0) or 0
+        out_tok = getattr(usage, "output_tokens", 0) or 0
+        cost = _price_call(model, in_tok, out_tok)
+        from database import record_api_usage
+        record_api_usage(kind, model, in_tok, out_tok, cost)
+    except Exception as e:
+        logger.warning(f"Could not record API usage: {e}")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(VECTOR_DIR, exist_ok=True)
 
@@ -310,13 +346,15 @@ def summarize_document(text: str, doc_name: str, category: str) -> dict:
         f"Produce the JSON summary."
     )
 
+    model = os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514")
     client = anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
-        model=os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514"),
+        model=model,
         max_tokens=1200,
         system=_SUMMARIZER_PROMPT,
         messages=[{"role": "user", "content": user_message}],
     )
+    _log_api_usage("summarize", model, response)
     raw = response.content[0].text.strip()
 
     # Strip accidental markdown fences if Claude wraps the JSON
@@ -672,13 +710,15 @@ def query_prl(question: str, top_k: int = TOP_K, project_id: int = None) -> dict
     )
 
     try:
+        model = os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514")
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
-            model=os.environ.get("PRL_MODEL", "claude-sonnet-4-20250514"),
+            model=model,
             max_tokens=3000,
             system=PRL_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],
         )
+        _log_api_usage("ask", model, response)
         answer = response.content[0].text
     except anthropic.AuthenticationError:
         answer = "**AUTHENTICATION ERROR**\n\nInvalid API key. Please check your ANTHROPIC_API_KEY in Railway variables."

@@ -52,6 +52,7 @@ from database import (
     get_documents_with_summaries,
     get_document,
     assign_document_project,
+    get_api_usage_summary,
 )
 
 # ---------------------------------------------------------------------------
@@ -274,6 +275,11 @@ def api_delete_document():
 # ---------------------------------------------------------------------------
 # Routes — Projects
 # ---------------------------------------------------------------------------
+
+@app.route("/api/usage")
+def api_usage():
+    return jsonify(get_api_usage_summary())
+
 
 @app.route("/api/projects")
 def api_projects():

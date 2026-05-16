@@ -352,6 +352,11 @@
             </div>
         </div>
         <div class="header-right">
+            <div class="status-pill" id="cost-pill" title="API spend — click for detail" onclick="showCostDetail()" style="cursor:pointer">
+                <span style="font-size:11px;color:var(--gold-400);font-weight:700">API</span>
+                <span class="status-txt" id="cost-total" style="font-family:var(--font-mono);font-weight:700">$0.00</span>
+                <span style="font-size:10px;color:var(--gray-400);font-family:var(--font-mono)" id="cost-today">today $0.00</span>
+            </div>
             <div class="status-pill">
                 <span class="status-dot"></span>
                 <span class="status-txt">ONLINE</span>
@@ -944,7 +949,7 @@ async function submitUpload(){
             showToast(d.message||'Upload failed','error');
         }
     }catch(e){showToast('Upload failed: '+e.message,'error')}
-    setTimeout(()=>{bar.classList.remove('active');fill.style.width='0%';cancelUpload();loadDocuments();loadDashboard()},600);
+    setTimeout(()=>{bar.classList.remove('active');fill.style.width='0%';cancelUpload();loadDocuments();loadDashboard();setTimeout(loadUsage,8000)},600);
 }
 async function loadCategories(){
     const r=await fetch('/api/categories');const cats=await r.json();
@@ -985,6 +990,7 @@ async function sendQuestion(){
         msgs.innerHTML+=`<div class="ask-msg assistant" style="border-color:var(--danger-border)">Error: ${escHtml(e.message)}</div>`;
     }
     btn.disabled=false;msgs.scrollTop=msgs.scrollHeight;
+    loadUsage();
 }
 
 async function submitFeedback(id,status){
@@ -1062,6 +1068,23 @@ async function confirmSend(){
         project_id:pid?parseInt(pid,10):null
     })});
     closeCompose();showToast('Email sent successfully');loadEmails();
+}
+
+// === API COST COUNTER ===
+let lastUsage=null;
+async function loadUsage(){
+    try{
+        const r=await fetch('/api/usage');const d=await r.json();
+        lastUsage=d;
+        document.getElementById('cost-total').textContent='$'+d.total_cost_usd.toFixed(4);
+        document.getElementById('cost-today').textContent='today $'+d.today_cost_usd.toFixed(4);
+    }catch(e){console.error('Usage load failed:',e)}
+}
+function showCostDetail(){
+    if(!lastUsage){loadUsage();return}
+    const d=lastUsage;
+    const fmt=n=>n.toLocaleString();
+    showToast(`API total: $${d.total_cost_usd.toFixed(4)} · ${d.total_calls} calls · ${fmt(d.total_input_tokens)} in / ${fmt(d.total_output_tokens)} out tokens`,'info');
 }
 
 // === HEALTH CHECK ===
@@ -1246,7 +1269,8 @@ async function loadProjectDocuments(){
 }
 
 // === INIT ===
-loadDashboard();loadSchedule();loadEmails();loadLetters();loadGovernance();loadCategories();loadRecipients();loadDocuments();loadProjects();checkHealth();
+loadDashboard();loadSchedule();loadEmails();loadLetters();loadGovernance();loadCategories();loadRecipients();loadDocuments();loadProjects();loadUsage();checkHealth();
+setInterval(loadUsage, 30000);
 </script>
 </body>
 </html>
